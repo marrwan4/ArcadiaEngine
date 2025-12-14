@@ -125,13 +125,45 @@ long long InventorySystem::countStringPossibilities(string s) {
 // =========================================================
 
 bool WorldNavigator::pathExists(int n, vector<vector<int>>& edges, int source, int dest) {
-    // TODO: Implement path existence check using BFS or DFS
-    // edges are bidirectional
+    // time: O(V + E), space: O(V + E)
+    if (source == dest){
+        return true;
+    }
+    // Build adjacency list
+    vector<vector<int>> adj(n);
+    for (auto& edge : edges) {
+        int u = edge[0], v = edge[1];
+        adj[u].push_back(v);
+        adj[v].push_back(u);
+    }
+    // Push source into queue
+    queue<int> q;
+    q.push(source);
+    // Mark it visited
+    vector<bool> visited(n, false);
+    visited[source] = true;
+    // While queue not empty:
+    while (!q.empty()) {
+        // Pop node
+        int node = q.front();
+        q.pop();
+        // If node == dest → return true
+        if (node == dest) {
+            return true;
+        }
+        // Push unvisited neighbors
+        for (int neighbor : adj[node]) {
+            if (!visited[neighbor]) {
+                visited[neighbor] = true;
+                q.push(neighbor);
+            }
+        }
+    }
+    // If finished → return false
     return false;
 }
 
-long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long long silverRate,
-                                       vector<vector<int>>& roadData) {
+long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long long silverRate, vector<vector<int>>& roadData) {
     // TODO: Implement Minimum Spanning Tree (Kruskal's or Prim's)
     // roadData[i] = {u, v, goldCost, silverCost}
     // Total cost = goldCost * goldRate + silverCost * silverRate
