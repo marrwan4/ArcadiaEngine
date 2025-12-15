@@ -131,8 +131,8 @@ bool WorldNavigator::pathExists(int n, vector<vector<int>>& edges, int source, i
     }
     // Build adjacency list
     vector<vector<int>> adj(n);
-    for (auto& edge : edges) {
-        int u = edge[0], v = edge[1];
+    for (int i = 0; i < edges.size(); i++) {
+        int u = edges[i][0], v = edges[i][1];
         adj[u].push_back(v);
         adj[v].push_back(u);
     }
@@ -166,9 +166,36 @@ bool WorldNavigator::pathExists(int n, vector<vector<int>>& edges, int source, i
 long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long long silverRate, vector<vector<int>>& roadData) {
     // TODO: Implement Minimum Spanning Tree (Kruskal's or Prim's)
     // roadData[i] = {u, v, goldCost, silverCost}
+    // n : number of cities
+    // m : number of roads
+    // u : start city
+    // v : end city
     // Total cost = goldCost * goldRate + silverCost * silverRate
-    // Return -1 if graph cannot be fully connected
-    return -1;
+    // prim's
+    vector<tuple<int, int, long long>> edges; // (u, v , cost)
+    priority_queue<long long, vector<long long>, greater<>> Q;
+    for (const auto& road : roadData) {
+        int u = road[0];
+        int v = road[1];
+        long long cost = road[2] * goldRate + road[3] * silverRate;
+        edges.push_back({u, v, cost});
+        Q.push(cost);
+    }
+    /*
+    Q ← V
+    key[v] ← ∞ for all v ∈ V
+    key[s] ← 0 for some arbitrary s ∈ V
+    while Q ≠ ∅
+        do u ← EXTRACT-MIN(Q)
+            for each v ∈ Adj[u]
+                do if v ∈ Q and w(u, v) < key[v]
+                then key[v] ← w(u, v)
+
+                π[v] ← u
+    */
+    if (/* graph not fully connected */true) {
+        return -1;
+    }
 }
 
 string WorldNavigator::sumMinDistancesBinary(int n, vector<vector<int>>& roads) {
