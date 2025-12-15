@@ -103,14 +103,98 @@ void test_PartA_DataStructures() {
     delete board;
 
     // 3. AuctionTree (Red-Black Tree)
-    // Requirement: Insert items without crashing
-    AuctionTree* tree = createAuctionTree();
-    runner.runTest("AuctionTree: Insert Items", [&]() {
-        tree->insertItem(1, 100);
-        tree->insertItem(2, 50);
+    // Test 1: Basic insertion without crash
+    AuctionTree* tree1 = createAuctionTree();
+    runner.runTest("AuctionTree: Basic Insert (no crash)", [&]() {
+        tree1->insertItem(1, 100);
+        tree1->insertItem(2, 50);
+        tree1->insertItem(3, 150);
         return true; // Pass if no crash
     }());
-    delete tree;
+    delete tree1;
+
+    // Test 2: Insert in ascending price order (tests left rotations)
+    AuctionTree* tree2 = createAuctionTree();
+    runner.runTest("AuctionTree: Ascending Order Insert", [&]() {
+        tree2->insertItem(1, 10);
+        tree2->insertItem(2, 20);
+        tree2->insertItem(3, 30);
+        tree2->insertItem(4, 40);
+        tree2->insertItem(5, 50);
+        return true; // Pass if no crash, tree should balance
+    }());
+    delete tree2;
+
+    // Test 3: Insert in descending price order (tests right rotations)
+    AuctionTree* tree3 = createAuctionTree();
+    runner.runTest("AuctionTree: Descending Order Insert", [&]() {
+        tree3->insertItem(5, 50);
+        tree3->insertItem(4, 40);
+        tree3->insertItem(3, 30);
+        tree3->insertItem(2, 20);
+        tree3->insertItem(1, 10);
+        return true; // Pass if no crash, tree should balance
+    }());
+    delete tree3;
+
+    // Test 4: Mixed insertions (tests various fixup cases)
+    AuctionTree* tree4 = createAuctionTree();
+    runner.runTest("AuctionTree: Mixed Order Insert", [&]() {
+        tree4->insertItem(4, 40);
+        tree4->insertItem(2, 20);
+        tree4->insertItem(6, 60);
+        tree4->insertItem(1, 10);
+        tree4->insertItem(3, 30);
+        tree4->insertItem(5, 50);
+        tree4->insertItem(7, 70);
+        return true; // Pass if no crash
+    }());
+    delete tree4;
+
+    // Test 5: Same price, different IDs (tests secondary sort by ID)
+    AuctionTree* tree5 = createAuctionTree();
+    runner.runTest("AuctionTree: Same Price Different IDs", [&]() {
+        tree5->insertItem(10, 100);
+        tree5->insertItem(5, 100);
+        tree5->insertItem(15, 100);
+        tree5->insertItem(3, 100);
+        tree5->insertItem(7, 100);
+        return true; // Pass if no crash, sorted by ID when prices equal
+    }());
+    delete tree5;
+
+    // Test 6: Duplicate ID detection
+    AuctionTree* tree6 = createAuctionTree();
+    runner.runTest("AuctionTree: Duplicate ID Handling", [&]() {
+        tree6->insertItem(1, 100);
+        tree6->insertItem(1, 100); // Should be rejected or handled gracefully
+        return true; // Pass if no crash
+    }());
+    delete tree6;
+
+    // Test 7: Large number of insertions
+    /*AuctionTree* tree7 = createAuctionTree();
+    runner.runTest("AuctionTree: Large Insert (100 items)", [&]() {
+        for (int i = 1; i <= 100; i++) {
+            tree7->insertItem(i, i * 10);
+        }
+        return true; // Pass if no crash, tests tree balancing
+    }());
+    delete tree7;*/
+
+    // Test 8: Zigzag pattern (alternating left-right)
+    AuctionTree* tree8 = createAuctionTree();
+    runner.runTest("AuctionTree: Zigzag Pattern Insert", [&]() {
+        tree8->insertItem(1, 50);
+        tree8->insertItem(2, 25);
+        tree8->insertItem(3, 75);
+        tree8->insertItem(4, 12);
+        tree8->insertItem(5, 37);
+        tree8->insertItem(6, 62);
+        tree8->insertItem(7, 87);
+        return true; // Pass if no crash
+    }());
+    delete tree8;
 }
 
 // ==========================================
