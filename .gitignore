@@ -1,1 +1,7 @@
 .vscode/
+
+.idea/
+
+*.exe
+
+cmake-build-debug/
