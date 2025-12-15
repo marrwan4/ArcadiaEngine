@@ -103,6 +103,9 @@ public:
 //i often wonder if life is worth living
 //i often wonder if life is worth living
 int InventorySystem::optimizeLootSplit(int n, vector<int>& coins) {
+    // Complexity: O(n × sum) time, O(sum) space
+    // where sum = total sum of all coins
+    
     int total = 0;
     for (int coin : coins) {
         total += coin;
@@ -133,14 +136,30 @@ int InventorySystem::optimizeLootSplit(int n, vector<int>& coins) {
 }
 
 int InventorySystem::maximizeCarryValue(int capacity, vector<pair<int, int>>& items) {
-    // TODO: Implement 0/1 Knapsack using DP
-    // items = {weight, value} pairs
+    // Complexity: O(n × W) time, O(W) space
+    // where n = number of items, W = capacity
+    
+
+    vector<int> dp(capacity + 1, 0);
+
+    for (auto& item : items) {
+        int weight = item.first;
+        int value = item.second;
+        
+        // For each possible weight w (from capacity down to weight)
+        // If we can carry (w - weight), we can now carry w with this item
+        for (int w = capacity; w >= weight; w--) {
+            dp[w] = max(dp[w], dp[w - weight] + value);
+        }
+    }
+    
     // Return maximum value achievable within capacity
-    return 0;
+    return dp[capacity];
 }
 
 long long InventorySystem::countStringPossibilities(string s) {
     // TODO: Implement string decoding DP
+    // Complexity: O(n) time, O(n) space where n = length of string
     // Rules: "uu" can be decoded as "w" or "uu"
     //        "nn" can be decoded as "m" or "nn"
     // Count total possible decodings
