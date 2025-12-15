@@ -98,11 +98,38 @@ public:
 // PART B: INVENTORY SYSTEM (Dynamic Programming)
 // =========================================================
 
+
+//i often wonder if life is worth living
+//i often wonder if life is worth living
+//i often wonder if life is worth living
 int InventorySystem::optimizeLootSplit(int n, vector<int>& coins) {
-    // TODO: Implement partition problem using DP
-    // Goal: Minimize |sum(subset1) - sum(subset2)|
-    // Hint: Use subset sum DP to find closest sum to total/2
-    return 0;
+    int total = 0;
+    for (int coin : coins) {
+        total += coin;
+    }
+    
+    int target = total / 2;
+    
+    vector<bool> dp(target + 1, false);
+    dp[0] = true;
+    
+    for (int coin : coins) {
+        for (int j = target; j >= coin; j--) {
+            if (dp[j - coin]) {
+                dp[j] = true;
+            }
+        }
+    }
+    
+    int maxSum = 0;
+    for (int j = target; j >= 0; j--) {
+        if (dp[j]) {
+            maxSum = j;
+            break;
+        }
+    }
+
+    return total - 2 * maxSum;
 }
 
 int InventorySystem::maximizeCarryValue(int capacity, vector<pair<int, int>>& items) {
