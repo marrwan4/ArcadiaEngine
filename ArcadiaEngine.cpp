@@ -191,38 +191,64 @@ bool WorldNavigator::pathExists(int n, vector<vector<int>>& edges, int source, i
 }
 
 long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long long silverRate, vector<vector<int>>& roadData) {
-    // TODO: Implement Minimum Spanning Tree (Kruskal's or Prim's)
     // roadData[i] = {u, v, goldCost, silverCost}
     // n : number of cities
     // m : number of roads
     // u : start city
     // v : end city
     // Total cost = goldCost * goldRate + silverCost * silverRate
-    // prim's
-    vector<tuple<int, int, long long>> edges; // (u, v , cost)
-    priority_queue<long long, vector<long long>, greater<>> Q;
+    // Build adjacency list
+    vector<vector<tuple<int, long long>>> adj(n);
     for (const auto& road : roadData) {
         int u = road[0];
         int v = road[1];
         long long cost = road[2] * goldRate + road[3] * silverRate;
-        edges.push_back({u, v, cost});
-        Q.push(cost);
+        adj[u].push_back({v, cost});
+        adj[v].push_back({u, cost});
     }
-    /*
-    Q ← V
-    key[v] ← ∞ for all v ∈ V
-    key[s] ← 0 for some arbitrary s ∈ V
-    while Q ≠ ∅
-        do u ← EXTRACT-MIN(Q)
-            for each v ∈ Adj[u]
-                do if v ∈ Q and w(u, v) < key[v]
-                then key[v] ← w(u, v)
+    vector<long long> key(n, LLONG_MAX);   // key[v] ← ∞
+    vector<bool> inMST(n, false);           // v ∈ Q ?
+    vector<int> parent(n, -1);              // π[v]
 
-                π[v] ← u
-    */
-    if (/* graph not fully connected */true) {
+    // Q ← V  (min-heap ordered by key)
+    priority_queue<tuple<long long, int>,vector<tuple<long long, int>>,greater<>> Q;
+
+    // key[s] ← 0 (start from vertex 0)
+    key[0] = 0;
+    Q.push({0, 0});
+
+    long long totalCost = 0;
+    int connected = 0;
+
+    // while Q ≠ ∅
+    while (!Q.empty()) {
+        auto [curKey, u] = Q.top();
+        Q.pop();
+
+        // Ignore outdated entries
+        if (inMST[u]) continue;
+
+        // u ← EXTRACT-MIN(Q)
+        inMST[u] = true;
+        totalCost += curKey;
+        connected++;
+
+        // for each v ∈ Adj[u]
+        for (auto& [v, w] : adj[u]) {
+            // if v ∈ Q and w(u, v) < key[v]
+            if (!inMST[v] && w < key[v]) {
+                key[v] = w;        // DECREASE-KEY
+                parent[v] = u;     // π[v] ← u
+                Q.push({key[v], v});
+            }
+        }
+    }
+
+    // Connectivity check
+    if (connected != n) {
         return -1;
     }
+    return totalCost;
 }
 
 string WorldNavigator::sumMinDistancesBinary(int n, vector<vector<int>>& roads) {
