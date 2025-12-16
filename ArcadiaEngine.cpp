@@ -255,6 +255,7 @@ long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long lo
     // v : end city
     // Total cost = goldCost * goldRate + silverCost * silverRate
     // Build adjacency list
+    // time: O(E log V), space: O(V + E)
     vector<vector<tuple<int, long long>>> adj(n);
     for (const auto& road : roadData) {
         int u = road[0];
