@@ -52,13 +52,12 @@ public:
         for (int i = 0; i < 100; ++i) {
             index = ((playerID%101) + i * (1 + playerID%100))%101;
             if(arr[index].playerId == -1){
-                arr[index].playerId = index;
+                arr[index].playerId = playerID;
                 arr[index].name = name;
                 this->count++;
                 break;
             }
         }
-
     }
 
     string search(int playerID) override {
