@@ -26,22 +26,61 @@ class ConcretePlayerTable : public PlayerTable {
 private:
     // TODO: Define your data structures here
     // Hint: You'll need a hash table with double hashing collision resolution
+    struct Entry{
+        int playerId = -1;
+        string name = "";
+    };
+
+
+    Entry arr[101];
+    int count;
 
 public:
     ConcretePlayerTable() {
         // TODO: Initialize your hash table
+        this->count = 0;
     }
 
     void insert(int playerID, string name) override {
         // TODO: Implement double hashing insert
         // Remember to handle collisions using h1(key) + i * h2(key)
+        int index;
+        if (count == 101){
+            cout << "Table is full" << endl;
+            return;
+        }
+        for (int i = 0; i < 100; ++i) {
+            index = ((playerID%101) + i * (1 + playerID%100))%101;
+            if(arr[index].playerId == -1){
+                arr[index].playerId = index;
+                arr[index].name = name;
+                this->count++;
+                break;
+            }
+        }
+
     }
 
     string search(int playerID) override {
         // TODO: Implement double hashing search
         // Return "" if player not found
+        for (int i = 0; i < 101; i++) {
+            int index = ((playerID%101) + i * (1 + playerID%100))%101;
+
+            // Stop early if slot is empty
+            if (arr[index].playerId == -1) {
+                return "";
+            }
+
+            // Found the player
+            if (arr[index].playerId == playerID) {
+                return arr[index].name;
+            }
+        }
+
         return "";
     }
+
 };
 
 // --- 2. Leaderboard (Skip List) ---
@@ -261,7 +300,32 @@ int ServerKernel::minIntervals(vector<char>& tasks, int n) {
     // Same task must wait 'n' intervals before running again
     // Return minimum total intervals needed (including idle time)
     // Hint: Use greedy approach with frequency counting
-    return 0;
+
+    vector<int> freq(26, 0);
+    for (char t : tasks) {
+        freq[t - 'A']++;
+    }
+
+    // Find maximum frequency
+    int f_max = *max_element(freq.begin(), freq.end());
+
+    // Count how many tasks have this maximum frequency
+    int count_max = 0;
+    for (int f : freq) {
+        if (f == f_max)
+            count_max++;
+    }
+
+    int totalTasks = tasks.size();
+
+    // Greedy formula
+    int result = max(
+            totalTasks,
+            (f_max - 1) * (n + 1) + count_max
+    );
+
+    return result;
+
 }
 
 // =========================================================
