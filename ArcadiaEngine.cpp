@@ -47,19 +47,22 @@ public:
         // TODO: Implement double hashing insert
         // Remember to handle collisions using h1(key) + i * h2(key)
         int index;
+
         if (count == 101){
             cout << "Table is Full" << endl;
             return;
         }
-        for (int i = 0; i < 100; ++i) {
+        for (int i = 0; i < 101; ++i) {
             index = ((playerID%101) + i * (1 + playerID%100))%101;
             if(arr[index].playerId == -1){
                 arr[index].playerId = playerID;
                 arr[index].name = name;
                 this->count++;
-                break;
+                return;
             }
         }
+        cout << "Table is Full" << endl;
+
     }
 
     string search(int playerID) override {
