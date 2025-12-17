@@ -12,7 +12,9 @@
 #include <string>
 #include <iostream>
 #include <map>
+#include <unordered_map>
 #include <set>
+#include <unordered_set>
 
 using namespace std;
 
@@ -84,51 +86,486 @@ public:
 
 // --- 2. Leaderboard (Skip List) ---
 
-class ConcreteLeaderboard : public Leaderboard {
-private:
-    // TODO: Define your skip list node structure and necessary variables
-    // Hint: You'll need nodes with multiple forward pointers
+struct SkipNode {
+    int playerID;
+    int score;
+    int level;
+    vector<SkipNode*> forward;
 
-public:
-    ConcreteLeaderboard() {
-        // TODO: Initialize your skip list
-    }
-
-    void addScore(int playerID, int score) override {
-        // TODO: Implement skip list insertion
-        // Remember to maintain descending order by score
-    }
-
-    void removePlayer(int playerID) override {
-        // TODO: Implement skip list deletion
-    }
-
-    vector<int> getTopN(int n) override {
-        // TODO: Return top N player IDs in descending score order
-        return {};
+    SkipNode(int id, int s, int lvl) : playerID(id), score(s), level(lvl) {
+        forward.resize(lvl + 1, nullptr);
     }
 };
 
+class ConcreteLeaderboard : public Leaderboard {
+private:
+    SkipNode* head;
+    int maxLevel;
+    float probability;
+    int currentLevel;
+
+    // Helper: Coin flip to determine node level
+    int randomLevel() const {
+        int lvl = 0;
+        while (((float)rand() / RAND_MAX) < probability && lvl < maxLevel) {
+            lvl++;
+        }
+        return lvl;
+    }
+
+    static bool isHigherRank(int scoreA, int idA, int scoreB, int idB) {
+        if (scoreA > scoreB) return true;
+        if (scoreA == scoreB && idA < idB) return true;
+        return false;
+    }
+
+public:
+    ConcreteLeaderboard() {
+        maxLevel = 16;
+        probability = 0.5f;
+        currentLevel = 0;
+        head = new SkipNode(-1, INT_MAX, maxLevel);
+        srand(time(nullptr));
+    }
+
+    ~ConcreteLeaderboard() {
+        SkipNode* curr = head;
+        while (curr) {
+            SkipNode* next = curr->forward[0];
+            delete curr;
+            curr = next;
+        }
+    }
+
+    void addScore(int playerID, int score) override {
+        vector<SkipNode*> update(maxLevel + 1);
+        SkipNode* curr = head;
+
+        // 1. Find insert position (O(log n))
+        for (int i = currentLevel; i >= 0; i--) {
+            while (curr->forward[i] != nullptr && isHigherRank(curr->forward[i]->score, curr->forward[i]->playerID, score, playerID)) {
+                curr = curr->forward[i];
+            }
+            update[i] = curr;
+        }
+
+        // 2. Generate random level
+        int newLevel = randomLevel();
+        if (newLevel > currentLevel) {
+            for (int i = currentLevel + 1; i <= newLevel; i++) {
+                update[i] = head;
+            }
+            currentLevel = newLevel;
+        }
+
+        // 3. Insert Node
+        auto* newNode = new SkipNode(playerID, score, newLevel);
+        for (int i = 0; i <= newLevel; i++) {
+            newNode->forward[i] = update[i]->forward[i];
+            update[i]->forward[i] = newNode;
+        }
+    }
+
+    void removePlayer(int playerID) override {
+        SkipNode* target = nullptr;
+        SkipNode* scan = head->forward[0];
+
+        // 1. Linear Scan to find target score (O(N))
+        while (scan != nullptr) {
+            if (scan->playerID == playerID) {
+                target = scan;
+                break;
+            }
+            scan = scan->forward[0];
+        }
+
+        if (!target) return; // Player not found
+
+        // 2. Standard Skip List Delete (O(log n)) using the score we just found
+        vector<SkipNode*> update(maxLevel + 1);
+        SkipNode* curr = head;
+        int targetScore = target->score;
+        int targetID = target->playerID;
+
+        for (int i = currentLevel; i >= 0; i--) {
+            while (curr->forward[i] != nullptr && isHigherRank(curr->forward[i]->score, curr->forward[i]->playerID, targetScore, targetID)) {
+                curr = curr->forward[i];
+            }
+            update[i] = curr;
+        }
+
+        // 3. Unlink the node
+        if (curr->forward[0] == target) {
+            for (int i = 0; i <= currentLevel; i++) {
+                if (update[i]->forward[i] != target) break;
+                update[i]->forward[i] = target->forward[i];
+            }
+            delete target;
+
+            // reduces level if needed
+            while (currentLevel > 0 && head->forward[currentLevel] == nullptr) {
+                currentLevel--;
+            }
+        }
+    }
+
+    vector<int> getTopN(int n) override {
+        vector<int> results;
+        SkipNode* curr = head->forward[0];
+
+        // Simple traversal of the sorted list
+        while (curr != nullptr && results.size() < n) {
+            results.push_back(curr->playerID);
+            curr = curr->forward[0];
+        }
+        return results;
+    }
+};
+
+
 // --- 3. AuctionTree (Red-Black Tree) ---
+
+struct Node {
+    int id;
+    int price;
+    char color;
+    Node* left;
+    Node* right;
+    Node* parent;
+
+    Node(int id, int price, char color = 'r') {
+        this->id = id;
+        this->price = price;
+        this->color = color;
+        this->left = nullptr;
+        this->right = nullptr;
+        this->parent = nullptr;
+    }
+
+    friend ostream& operator<<(ostream& out, const Node& node) {
+        return out << node.id << ',' << node.price << ',' << node.color;
+    }
+    Node& operator=(const Node& other) {
+        if (this != &other) {
+            id = other.id;
+            price = other.price;
+            color = other.color;
+            left = other.left;
+            right = other.right;
+            parent = other.parent;
+        }
+        return *this;
+    }
+};
 
 class ConcreteAuctionTree : public AuctionTree {
 private:
-    // TODO: Define your Red-Black Tree node structure
-    // Hint: Each node needs: id, price, color, left, right, parent pointers
+    Node* root;
+    Node* nil;
 
+    void rotateLeft(Node* x) {
+        Node* y = x->right;
+        x->right = y->left;
+        if (y->left != nil) y->left->parent = x;
+        y->parent = x->parent;
+        if (x->parent == nil) root = y;
+        else if (x == x->parent->left) x->parent->left = y;
+        else x->parent->right = y;
+        y->left = x;
+        x->parent = y;
+    }
+    void rotateRight(Node* x) {
+        Node* y = x->left;
+        x->left = y->right;
+        if (y->right != nil) y->right->parent = x;
+        y->parent = x->parent;
+        if (x->parent == nil) root = y;
+        else if (x == x->parent->right) x->parent->right = y;
+        else x->parent->left = y;
+        y->right = x;
+        x->parent = y;
+    }
+    void insertFixup(Node* x) {
+        // parent is red
+        while (x != root && x->parent->color == 'r') {
+            // parent is left
+            if (x->parent == x->parent->parent->left) {
+                Node* uncle = x->parent->parent->right;
+
+                // Case 1
+                if (uncle->color == 'r') {
+                    x->parent->color = 'b';
+                    uncle->color = 'b';
+                    x->parent->parent->color = 'r';
+                    x = x->parent->parent;
+                }
+                else if (uncle->color == 'b'){
+                    // Case 2
+                    if (x == x->parent->right) {
+                        x = x->parent;
+                        rotateLeft(x);
+                    }
+                    // Case 3
+                    x->parent->color = 'b';
+                    x->parent->parent->color = 'r';
+                    rotateRight(x->parent->parent);
+                }
+            }
+            // parent is right
+            else if (x->parent == x->parent->parent->right) {
+                Node* uncle = x->parent->parent->left;
+                // Case 4
+                if (uncle->color == 'r') {
+                    x->parent->color = 'b';
+                    uncle->color = 'b';
+                    x->parent->parent->color = 'r';
+                    x = x->parent->parent;
+                }
+                else if (uncle->color == 'b') {
+                    // Case 5
+                    if (x == x->parent->left) {
+                        x = x->parent;
+                        rotateRight(x);
+                    }
+                    // Case 6
+                    x->parent->color = 'b';
+                    x->parent->parent->color = 'r';
+                    rotateLeft(x->parent->parent);
+                }
+            }
+        }
+        root->color = 'b';
+    }
+    void traverseInorderHelper(Node* x) {
+        if (x != nil) {
+            traverseInorderHelper(x->left);
+            cout << *x << "   ";
+            traverseInorderHelper(x->right);
+        }
+    }
+    void traverseInorder() {
+        traverseInorderHelper(root);
+        cout<<endl;
+    }
+    void deleteTreeHelper(Node* node) {
+        if (node != nil) {
+            deleteTreeHelper(node->left);
+            deleteTreeHelper(node->right);
+            delete node;
+        }
+    }
+    Node* searchItemHelper(Node* node, int itemID) {
+        if (node == nil) {
+            return nil;
+        }
+        if (node->id == itemID) {
+            return node;
+        }
+        // Search left subtree
+        Node* found = searchItemHelper(node->left, itemID);
+        if (found != nil) {
+            return found;
+        }
+        // Search right subtree
+        return searchItemHelper(node->right, itemID);
+    }
+    Node* searchItem(int itemID) {
+        return searchItemHelper(root, itemID);
+    }
+    Node* getPredecessorHelper(Node* node) {
+        // get predecessor from left subtree
+        Node* current = node->left;
+        while (current->right != nil) {
+            current = current->right;
+        }
+        return current;
+        
+    }
+
+    Node* getSuccessorHelper(Node* node) {
+        // get successor from right subtree
+        Node* current = node->right;
+        while (current->left != nil) {
+            current = current->left;
+        }
+        return current;
+    }
+    Node* getReplacementNode(Node* node) {
+        // get replacement node for deletion
+        if (node->left != nil) {
+            return getPredecessorHelper(node);
+        } else if (node->right != nil) {
+            return getSuccessorHelper(node);
+        }
+        return node; // leaf node
+    }
+    Node* deleteBSTNode(Node* node) {
+        Node* node_child;
+        if (node->left != nil) node_child = node->left;
+        else node_child = node->right;
+        
+        // Link child to parent
+        node_child->parent = node->parent;
+
+        if (node->parent == nil) root = node_child;
+        else if (node == node->parent->left) node->parent->left = node_child;
+        else node->parent->right = node_child;
+        delete node;
+        return node_child;
+    }
+    void deleteFixup(Node* x) {
+        while(x != root && x->color == 'b') { // not case 1
+            if (x == x->parent->left) { // x is left child
+                Node* sibling = x->parent->right;
+                // Case 2: sibling is red
+                if (sibling->color == 'r') {
+                    sibling->color = 'b';
+                    x->parent->color = 'r';
+                    rotateLeft(x->parent);
+                    sibling = x->parent->right;
+                }
+                // Case 3: sibling is black, both of sibling's children are black
+                else if (sibling->left->color == 'b' && sibling->right->color == 'b') {
+                    sibling->color = 'r';
+                    x = x->parent;
+                }
+                else {
+                    // Case 4: sibling is black, one of sibling's children is red
+
+                    // sibling's left child is red
+                    if (sibling->left->color == 'r') {
+                        sibling->left->color = 'b';
+                        sibling->color = 'r';
+                        rotateRight(sibling);
+                        sibling = x->parent->right;
+                    }
+                    //sibling's right child is red
+                    sibling->color = x->parent->color;
+                    x->parent->color = 'b';
+                    sibling->right->color = 'b';
+                    rotateLeft(x->parent);
+                    x = root;
+                }
+            }
+            else{ // x is right child
+                Node* sibling = x->parent->left;
+                // Case 2: sibling is red
+                if (sibling->color == 'r') {
+                    sibling->color = 'b';
+                    x->parent->color = 'r';
+                    rotateRight(x->parent);
+                    sibling = x->parent->left;
+                }
+                // Case 3: sibling is black, both of sibling's children are black
+                else if (sibling->right->color == 'b' && sibling->left->color == 'b') {
+                    sibling->color = 'r';
+                    x = x->parent;
+                }
+                else {
+                    // Case 4: sibling is black, one of sibling's children is red
+
+                    // sibling's right child is red
+                    if (sibling->right->color == 'r') {
+                        sibling->right->color = 'b';
+                        sibling->color = 'r';
+                        rotateLeft(sibling);
+                        sibling = x->parent->left;
+                    }
+                    //sibling's left child is red
+                    sibling->color = x->parent->color;
+                    x->parent->color = 'b';
+                    sibling->left->color = 'b';
+                    rotateRight(x->parent);
+                    x = root;
+                }
+            }
+        }
+        x->color = 'b';
+    }
 public:
     ConcreteAuctionTree() {
-        // TODO: Initialize your Red-Black Tree
+        nil = new Node(0, INT_MAX, 'b');
+        root = nil;
     }
 
     void insertItem(int itemID, int price) override {
-        // TODO: Implement Red-Black Tree insertion
-        // Remember to maintain RB-Tree properties with rotations and recoloring
+        Node* new_node = new Node(itemID, price);
+        new_node->left = new_node->right = nil;
+        Node* parent = nil;
+        Node* current = root;
+
+        // Normal BST insertion O(log n)
+        while (current != nil) {
+            parent = current;
+            if (price < current->price) current = current->left;
+            else if (price > current->price) current = current->right;
+            else if (price == current->price){
+                if (itemID < current->id) current = current->left;
+                else if (itemID > current->id) current = current->right;
+                else {
+                    cout << "Price: "<< price << " with ID: "<< itemID << " already exists. (skipped inserting)" << endl;
+                    delete new_node;
+                    return;
+                };
+            }
+        }
+
+        new_node->parent = parent;
+
+        // Link new_node to parent
+        if (parent == nil) {
+            root = new_node;
+        }
+        else if (price < parent->price || (price == parent->price && itemID < parent->id)) {
+            parent->left = new_node;
+        }
+        else {
+            parent->right = new_node;
+        }
+
+        // O(log n)
+        insertFixup(new_node);
+
+        // O(n)
+        traverseInorder();
     }
 
     void deleteItem(int itemID) override {
-        // TODO: Implement Red-Black Tree deletion
-        // This is complex - handle all cases carefully
+        // O(n)
+        Node* node = searchItem(itemID);
+        
+        if (node == nil) {
+            cout << "Item ID: " << itemID << " not found. (skipped deleting)" << endl;
+            return;
+        }
+        // O(log n)
+        Node* replacement_node = getReplacementNode(node);
+
+        // Copy replacement_node data to node
+        node->id = replacement_node->id;
+        node->price = replacement_node->price;
+
+        char deleted_color = replacement_node->color;
+        
+        // O(log n)
+        Node* node_child = deleteBSTNode(replacement_node);
+        
+        // Only need fixup if a black node was deleted
+        if (deleted_color == 'b') {
+            // O(log n)
+            deleteFixup(node_child);
+        }
+
+        nil->parent = nullptr;
+        
+        // O(n)
+        traverseInorder();
+    }
+    ~ConcreteAuctionTree() {
+        if (root != nil) {
+            deleteTreeHelper(root);
+        }
+        delete nil;
     }
 };
 
@@ -213,26 +650,49 @@ bool WorldNavigator::pathExists(int n, vector<vector<int>>& edges, int source, i
     if (source == dest){
         return true;
     }
-    // Build adjacency list
-    vector<vector<int>> adj(n);
-    for (int i = 0; i < edges.size(); i++) {
-        int u = edges[i][0], v = edges[i][1];
+    
+    // Create mapping from actual node IDs to normalized [0, n-1]
+    unordered_map<int, int> nodeToIdx;
+    int idx = 0;
+    
+    // Collect all unique nodes
+    unordered_set<int> nodes;
+    nodes.insert(source);
+    nodes.insert(dest);
+    for (const auto& edge : edges) {
+        nodes.insert(edge[0]);
+        nodes.insert(edge[1]);
+    }
+    
+    // Assign indices
+    for (int node : nodes) {
+        nodeToIdx[node] = idx++;
+    }
+    
+    // Build adjacency list with normalized indices
+    vector<vector<int>> adj(nodes.size());
+    for (const auto& edge : edges) {
+        int u = nodeToIdx[edge[0]], v = nodeToIdx[edge[1]];
         adj[u].push_back(v);
         adj[v].push_back(u);
     }
+    
+    int normSource = nodeToIdx[source];
+    int normDest = nodeToIdx[dest];
+    
     // Push source into queue
     queue<int> q;
-    q.push(source);
+    q.push(normSource);
     // Mark it visited
-    vector<bool> visited(n, false);
-    visited[source] = true;
+    vector<bool> visited(nodes.size(), false);
+    visited[normSource] = true;
     // While queue not empty:
     while (!q.empty()) {
         // Pop node
         int node = q.front();
         q.pop();
-        // If node == dest → return true
-        if (node == dest) {
+        // If node == dest -> return true
+        if (node == normDest) {
             return true;
         }
         // Push unvisited neighbors
@@ -243,43 +703,95 @@ bool WorldNavigator::pathExists(int n, vector<vector<int>>& edges, int source, i
             }
         }
     }
-    // If finished → return false
+    // If finished -> return false
     return false;
 }
 
 long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long long silverRate, vector<vector<int>>& roadData) {
-    // TODO: Implement Minimum Spanning Tree (Kruskal's or Prim's)
-    // roadData[i] = {u, v, goldCost, silverCost}
-    // n : number of cities
-    // m : number of roads
-    // u : start city
-    // v : end city
-    // Total cost = goldCost * goldRate + silverCost * silverRate
-    // prim's
-    vector<tuple<int, int, long long>> edges; // (u, v , cost)
-    priority_queue<long long, vector<long long>, greater<>> Q;
+    // time: O(E log V), space: O(V + E)
+        // roadData[i] = {u, v, goldCost, silverCost}
+        // n : number of cities
+        // m : number of roads
+        // u : start city
+        // v : end city
+        // Total cost = goldCost * goldRate + silverCost * silverRate
+    // Create mapping from actual node IDs to normalized [0, n-1]
+    unordered_map<int, int> nodeToIdx;
+    unordered_set<int> nodes;
+    
+    // Collect all unique nodes
     for (const auto& road : roadData) {
-        int u = road[0];
-        int v = road[1];
-        long long cost = road[2] * goldRate + road[3] * silverRate;
-        edges.push_back({u, v, cost});
-        Q.push(cost);
+        nodes.insert(road[0]);
+        nodes.insert(road[1]);
     }
-    /*
-    Q ← V
-    key[v] ← ∞ for all v ∈ V
-    key[s] ← 0 for some arbitrary s ∈ V
-    while Q ≠ ∅
-        do u ← EXTRACT-MIN(Q)
-            for each v ∈ Adj[u]
-                do if v ∈ Q and w(u, v) < key[v]
-                then key[v] ← w(u, v)
+    
+    // Assign indices
+    int idx = 0;
+    for (int node : nodes) {
+        nodeToIdx[node] = idx++;
+    }
+    
+    int actualN = nodes.size();
+    
+    // Build adjacency list with normalized indices
+    vector<vector<tuple<int, long long>>> adj(actualN);
+    for (const auto& road : roadData) {
+        int u = nodeToIdx[road[0]];
+        int v = nodeToIdx[road[1]];
+        long long cost = road[2] * goldRate + road[3] * silverRate;
+        adj[u].push_back({v, cost});
+        adj[v].push_back({u, cost});
+    }
+    vector<long long> key(actualN, LLONG_MAX);   // key[v] = infinity
+    vector<bool> inMST(actualN, false);           // v belong to Q ?
+    vector<int> parent(actualN, -1);              // π[v]
 
-                π[v] ← u
-    */
-    if (/* graph not fully connected */true) {
+    // Q = V  (min-heap ordered by key)
+    priority_queue<tuple<long long, int>,vector<tuple<long long, int>>,greater<>> Q;
+
+    // key[s] = 0 (start from vertex 0)
+    key[0] = 0;
+    Q.push({0, 0});
+
+    long long totalCost = 0;
+    int connected = 0;
+
+    // while Q not empty
+    while (!Q.empty()) {
+        auto top = Q.top();
+        long long curKey = get<0>(top);
+        int u = get<1>(top);
+        Q.pop();
+
+        // ignore outdated entries
+        if (inMST[u]) {
+            continue;
+        }
+
+        // u = EXTRACT-MIN(Q)
+        inMST[u] = true;
+        totalCost += curKey;
+        connected++;
+
+        // for each v ∈ Adj[u]
+        for (auto& edge : adj[u]) {
+            int v = get<0>(edge);
+            long long w = get<1>(edge);
+            // if v belong to Q and w < key[v]
+            if (!inMST[v] && w < key[v]) {
+                key[v] = w;        // DECREASE-KEY
+                parent[v] = u;     // π[v] = u
+                Q.push({key[v], v});
+            }
+        }
+    }
+
+    // Connectivity check
+    if (connected != n) {
         return -1;
     }
+    // return total cost of MST
+    return totalCost;
 }
 
 string WorldNavigator::sumMinDistancesBinary(int n, vector<vector<int>>& roads) {
