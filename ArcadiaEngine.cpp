@@ -231,7 +231,7 @@ bool WorldNavigator::pathExists(int n, vector<vector<int>>& edges, int source, i
         // Pop node
         int node = q.front();
         q.pop();
-        // If node == dest → return true
+        // If node == dest -> return true
         if (node == dest) {
             return true;
         }
@@ -243,19 +243,19 @@ bool WorldNavigator::pathExists(int n, vector<vector<int>>& edges, int source, i
             }
         }
     }
-    // If finished → return false
+    // If finished -> return false
     return false;
 }
 
 long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long long silverRate, vector<vector<int>>& roadData) {
-    // roadData[i] = {u, v, goldCost, silverCost}
-    // n : number of cities
-    // m : number of roads
-    // u : start city
-    // v : end city
-    // Total cost = goldCost * goldRate + silverCost * silverRate
-    // Build adjacency list
     // time: O(E log V), space: O(V + E)
+        // roadData[i] = {u, v, goldCost, silverCost}
+        // n : number of cities
+        // m : number of roads
+        // u : start city
+        // v : end city
+        // Total cost = goldCost * goldRate + silverCost * silverRate
+    // Build adjacency list
     vector<vector<tuple<int, long long>>> adj(n);
     for (const auto& road : roadData) {
         int u = road[0];
@@ -264,31 +264,33 @@ long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long lo
         adj[u].push_back({v, cost});
         adj[v].push_back({u, cost});
     }
-    vector<long long> key(n, LLONG_MAX);   // key[v] ← ∞
-    vector<bool> inMST(n, false);           // v ∈ Q ?
+    vector<long long> key(n, LLONG_MAX);   // key[v] = infinity
+    vector<bool> inMST(n, false);           // v belong to Q ?
     vector<int> parent(n, -1);              // π[v]
 
-    // Q ← V  (min-heap ordered by key)
+    // Q = V  (min-heap ordered by key)
     priority_queue<tuple<long long, int>,vector<tuple<long long, int>>,greater<>> Q;
 
-    // key[s] ← 0 (start from vertex 0)
+    // key[s] = 0 (start from vertex 0)
     key[0] = 0;
     Q.push({0, 0});
 
     long long totalCost = 0;
     int connected = 0;
 
-    // while Q ≠ ∅
+    // while Q not empty
     while (!Q.empty()) {
         auto top = Q.top();
         long long curKey = get<0>(top);
         int u = get<1>(top);
         Q.pop();
 
-        // Ignore outdated entries
-        if (inMST[u]) continue;
+        // ignore outdated entries
+        if (inMST[u]) {
+            continue;
+        }
 
-        // u ← EXTRACT-MIN(Q)
+        // u = EXTRACT-MIN(Q)
         inMST[u] = true;
         totalCost += curKey;
         connected++;
@@ -297,10 +299,10 @@ long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long lo
         for (auto& edge : adj[u]) {
             int v = get<0>(edge);
             long long w = get<1>(edge);
-            // if v ∈ Q and w(u, v) < key[v]
+            // if v belong to Q and w < key[v]
             if (!inMST[v] && w < key[v]) {
                 key[v] = w;        // DECREASE-KEY
-                parent[v] = u;     // π[v] ← u
+                parent[v] = u;     // π[v] = u
                 Q.push({key[v], v});
             }
         }
@@ -310,6 +312,7 @@ long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long lo
     if (connected != n) {
         return -1;
     }
+    // return total cost of MST
     return totalCost;
 }
 
