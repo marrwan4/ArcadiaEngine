@@ -12,23 +12,11 @@
 #include <string>
 #include <iostream>
 #include <map>
+#include <unordered_map>
 #include <set>
+#include <unordered_set>
 
 using namespace std;
-
-// =========================================================
-// PART A: HELPER STRUCTS
-// =========================================================
-struct SkipNode {
-    int playerID;
-    int score;
-    int level;
-    vector<SkipNode*> forward;
-
-    SkipNode(int id, int s, int lvl) : playerID(id), score(s), level(lvl) {
-        forward.resize(lvl + 1, nullptr);
-    }
-};
 
 // =========================================================
 // PART A: DATA STRUCTURES (Concrete Implementations)
@@ -98,6 +86,17 @@ public:
 
 // --- 2. Leaderboard (Skip List) ---
 
+struct SkipNode {
+    int playerID;
+    int score;
+    int level;
+    vector<SkipNode*> forward;
+
+    SkipNode(int id, int s, int lvl) : playerID(id), score(s), level(lvl) {
+        forward.resize(lvl + 1, nullptr);
+    }
+};
+
 class ConcreteLeaderboard : public Leaderboard {
 private:
     SkipNode* head;
@@ -144,8 +143,7 @@ public:
 
         // 1. Find insert position (O(log n))
         for (int i = currentLevel; i >= 0; i--) {
-            while (curr->forward[i] != nullptr &&
-                   isHigherRank(curr->forward[i]->score, curr->forward[i]->playerID, score, playerID)) {
+            while (curr->forward[i] != nullptr && isHigherRank(curr->forward[i]->score, curr->forward[i]->playerID, score, playerID)) {
                 curr = curr->forward[i];
             }
             update[i] = curr;
@@ -190,8 +188,7 @@ public:
         int targetID = target->playerID;
 
         for (int i = currentLevel; i >= 0; i--) {
-            while (curr->forward[i] != nullptr &&
-                   isHigherRank(curr->forward[i]->score, curr->forward[i]->playerID, targetScore, targetID)) {
+            while (curr->forward[i] != nullptr && isHigherRank(curr->forward[i]->score, curr->forward[i]->playerID, targetScore, targetID)) {
                 curr = curr->forward[i];
             }
             update[i] = curr;
@@ -653,26 +650,49 @@ bool WorldNavigator::pathExists(int n, vector<vector<int>>& edges, int source, i
     if (source == dest){
         return true;
     }
-    // Build adjacency list
-    vector<vector<int>> adj(n);
-    for (int i = 0; i < edges.size(); i++) {
-        int u = edges[i][0], v = edges[i][1];
+    
+    // Create mapping from actual node IDs to normalized [0, n-1]
+    unordered_map<int, int> nodeToIdx;
+    int idx = 0;
+    
+    // Collect all unique nodes
+    unordered_set<int> nodes;
+    nodes.insert(source);
+    nodes.insert(dest);
+    for (const auto& edge : edges) {
+        nodes.insert(edge[0]);
+        nodes.insert(edge[1]);
+    }
+    
+    // Assign indices
+    for (int node : nodes) {
+        nodeToIdx[node] = idx++;
+    }
+    
+    // Build adjacency list with normalized indices
+    vector<vector<int>> adj(nodes.size());
+    for (const auto& edge : edges) {
+        int u = nodeToIdx[edge[0]], v = nodeToIdx[edge[1]];
         adj[u].push_back(v);
         adj[v].push_back(u);
     }
+    
+    int normSource = nodeToIdx[source];
+    int normDest = nodeToIdx[dest];
+    
     // Push source into queue
     queue<int> q;
-    q.push(source);
+    q.push(normSource);
     // Mark it visited
-    vector<bool> visited(n, false);
-    visited[source] = true;
+    vector<bool> visited(nodes.size(), false);
+    visited[normSource] = true;
     // While queue not empty:
     while (!q.empty()) {
         // Pop node
         int node = q.front();
         q.pop();
         // If node == dest -> return true
-        if (node == dest) {
+        if (node == normDest) {
             return true;
         }
         // Push unvisited neighbors
@@ -695,18 +715,36 @@ long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long lo
         // u : start city
         // v : end city
         // Total cost = goldCost * goldRate + silverCost * silverRate
-    // Build adjacency list
-    vector<vector<tuple<int, long long>>> adj(n);
+    // Create mapping from actual node IDs to normalized [0, n-1]
+    unordered_map<int, int> nodeToIdx;
+    unordered_set<int> nodes;
+    
+    // Collect all unique nodes
     for (const auto& road : roadData) {
-        int u = road[0];
-        int v = road[1];
+        nodes.insert(road[0]);
+        nodes.insert(road[1]);
+    }
+    
+    // Assign indices
+    int idx = 0;
+    for (int node : nodes) {
+        nodeToIdx[node] = idx++;
+    }
+    
+    int actualN = nodes.size();
+    
+    // Build adjacency list with normalized indices
+    vector<vector<tuple<int, long long>>> adj(actualN);
+    for (const auto& road : roadData) {
+        int u = nodeToIdx[road[0]];
+        int v = nodeToIdx[road[1]];
         long long cost = road[2] * goldRate + road[3] * silverRate;
         adj[u].push_back({v, cost});
         adj[v].push_back({u, cost});
     }
-    vector<long long> key(n, LLONG_MAX);   // key[v] = infinity
-    vector<bool> inMST(n, false);           // v belong to Q ?
-    vector<int> parent(n, -1);              // π[v]
+    vector<long long> key(actualN, LLONG_MAX);   // key[v] = infinity
+    vector<bool> inMST(actualN, false);           // v belong to Q ?
+    vector<int> parent(actualN, -1);              // π[v]
 
     // Q = V  (min-heap ordered by key)
     priority_queue<tuple<long long, int>,vector<tuple<long long, int>>,greater<>> Q;
