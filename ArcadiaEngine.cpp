@@ -46,7 +46,7 @@ public:
         // Remember to handle collisions using h1(key) + i * h2(key)
         int index;
         if (count == 101){
-            cout << "Table is full" << endl;
+            cout << "Table is Full" << endl;
             return;
         }
         for (int i = 0; i < 100; ++i) {
@@ -300,30 +300,68 @@ int ServerKernel::minIntervals(vector<char>& tasks, int n) {
     // Return minimum total intervals needed (including idle time)
     // Hint: Use greedy approach with frequency counting
 
+
     vector<int> freq(26, 0);
-    for (char t : tasks) {
+    for (char t : tasks)
         freq[t - 'A']++;
+
+    priority_queue<int> pq;
+    for (int f : freq)
+        if (f > 0)
+            pq.push(f);
+
+    int time = 0;
+
+    while (!pq.empty()) {
+        int cycle = n + 1;
+        vector<int> temp;
+
+        while (cycle > 0 && !pq.empty()) {
+            int curr = pq.top(); pq.pop();
+            curr--;
+            if (curr > 0)
+                temp.push_back(curr);
+            time++;
+            cycle--;
+        }
+
+        for (int f : temp)
+            pq.push(f);
+
+        // If heap is not empty, we must wait idles
+        if (!pq.empty())
+            time += cycle;
     }
 
-    // Find maximum frequency
-    int f_max = *max_element(freq.begin(), freq.end());
+    return time;
 
-    // Count how many tasks have this maximum frequency
-    int count_max = 0;
-    for (int f : freq) {
-        if (f == f_max)
-            count_max++;
-    }
 
-    int totalTasks = tasks.size();
 
-    // Greedy formula
-    int result = max(
-            totalTasks,
-            (f_max - 1) * (n + 1) + count_max
-    );
-
-    return result;
+    // Another approach in O(n) time complexity
+//    vector<int> freq(26, 0);
+//    for (char t : tasks) {
+//        freq[t - 'A']++;
+//    }
+//
+//    // Find maximum frequency
+//    int f_max = *max_element(freq.begin(), freq.end());
+//
+//    // Count how many tasks have this maximum frequency
+//    int count_max = 0;
+//    for (int f : freq) {
+//        if (f == f_max)
+//            count_max++;
+//    }
+//
+//    int totalTasks = tasks.size();
+//
+//    // Greedy formula
+//    int result = max(
+//            totalTasks,
+//            (f_max - 1) * (n + 1) + count_max
+//    );
+//
+//    return result;
 
 }
 
