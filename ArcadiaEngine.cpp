@@ -351,17 +351,15 @@ public:
         new_node->parent = parent;
 
         // Link new_node to parent
-        if (parent == nil)
+        if (parent == nil) {
             root = new_node;
-        else if (price < parent->price) 
+        }
+        else if (price < parent->price || (price == parent->price && itemID < parent->id)) {
             parent->left = new_node;
-        else if (price > parent->price)
+        }
+        else {
             parent->right = new_node;
-        else if (price == parent->price)
-            if (itemID < parent->id)
-                parent->left = new_node;
-            else
-                parent->right = new_node;
+        }
 
         insertFixup(new_node);
 
