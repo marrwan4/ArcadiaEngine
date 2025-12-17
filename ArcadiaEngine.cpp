@@ -89,9 +89,6 @@ struct Node {
         this->right = nullptr;
         this->parent = nullptr;
     }
-    ~Node() {
-        left = right = parent = nullptr;
-    }
 
     friend ostream& operator<<(ostream& out, const Node& node) {
         return out << node.id << ',' << node.price << ',' << node.color;
@@ -101,6 +98,9 @@ struct Node {
             id = other.id;
             price = other.price;
             color = other.color;
+            left = other.left;
+            right = other.right;
+            parent = other.parent;
         }
         return *this;
     }
@@ -184,33 +184,41 @@ private:
         }
         root->color = 'b';
     }
-    void traveseInorderHelper(Node* x) {
+    void traverseInorderHelper(Node* x) {
         if (x != nil) {
-            traveseInorderHelper(x->left);
+            traverseInorderHelper(x->left);
             cout << *x << "   ";
-            traveseInorderHelper(x->right);
+            traverseInorderHelper(x->right);
         }
     }
     void traverseInorder() {
-        traveseInorderHelper(root);
+        traverseInorderHelper(root);
         cout<<endl;
     }
     void deleteTreeHelper(Node* node) {
         if (node != nil) {
             deleteTreeHelper(node->left);
             deleteTreeHelper(node->right);
-            node->left = node->right = nullptr;
             delete node;
         }
     }
-    Node* searchItem(int itemID) {
-        Node* current = root;
-        while (current != nil) {
-            if (itemID == current->id) return current;
-            else if (itemID < current->id) current = current->left;
-            else current = current->right;
+    Node* searchItemHelper(Node* node, int itemID) {
+        if (node == nil) {
+            return nil;
         }
-        return nil; // Not found
+        if (node->id == itemID) {
+            return node;
+        }
+        // Search left subtree
+        Node* found = searchItemHelper(node->left, itemID);
+        if (found != nil) {
+            return found;
+        }
+        // Search right subtree
+        return searchItemHelper(node->right, itemID);
+    }
+    Node* searchItem(int itemID) {
+        return searchItemHelper(root, itemID);
     }
     Node* getPredecessorHelper(Node* node) {
         // get predecessor from left subtree
@@ -324,7 +332,8 @@ private:
     }
 public:
     ConcreteAuctionTree() {
-        root = nil = new Node(0, INT_MAX, 'b');
+        nil = new Node(0, INT_MAX, 'b');
+        root = nil;
     }
 
     void insertItem(int itemID, int price) override {
@@ -343,6 +352,7 @@ public:
                 else if (itemID > current->id) current = current->right;
                 else {
                     cout << "Price: "<< price << " with ID: "<< itemID << " already exists. (skipped inserting)" << endl;
+                    delete new_node;
                     return;
                 };
             }
@@ -393,14 +403,17 @@ public:
             // O(log n)
             deleteFixup(node_child);
         }
+
+        nil->parent = nullptr;
         
         // O(n)
         traverseInorder();
     }
     ~ConcreteAuctionTree() {
-        deleteTreeHelper(root);
+        if (root != nil) {
+            deleteTreeHelper(root);
+        }
         delete nil;
-        root = nil = nullptr;
     }
 };
 
