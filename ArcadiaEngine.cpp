@@ -96,6 +96,14 @@ struct Node {
     friend ostream& operator<<(ostream& out, const Node& node) {
         return out << node.id << ',' << node.price << ',' << node.color;
     }
+    Node& operator=(const Node& other) {
+        if (this != &other) {
+            id = other.id;
+            price = other.price;
+            color = other.color;
+        }
+        return *this;
+    }
 };
 
 class ConcreteAuctionTree : public AuctionTree {
@@ -176,9 +184,6 @@ private:
         }
         root->color = 'b';
     }
-    void deleteFixup(Node* x) {
-
-    }
     void traveseInorderHelper(Node* x) {
         if (x != nil) {
             traveseInorderHelper(x->left);
@@ -197,6 +202,125 @@ private:
             node->left = node->right = nullptr;
             delete node;
         }
+    }
+    Node* searchItem(int itemID) {
+        Node* current = root;
+        while (current != nil) {
+            if (itemID == current->id) return current;
+            else if (itemID < current->id) current = current->left;
+            else current = current->right;
+        }
+        return nil; // Not found
+    }
+    Node* getPredecessorHelper(Node* node) {
+        // get predecessor from left subtree
+        Node* current = node->left;
+        while (current->right != nil) {
+            current = current->right;
+        }
+        return current;
+        
+    }
+
+    Node* getSuccessorHelper(Node* node) {
+        // get successor from right subtree
+        Node* current = node->right;
+        while (current->left != nil) {
+            current = current->left;
+        }
+        return current;
+    }
+    Node* getReplacementNode(Node* node) {
+        // get replacement node for deletion
+        if (node->left != nil) {
+            return getPredecessorHelper(node);
+        } else if (node->right != nil) {
+            return getSuccessorHelper(node);
+        }
+        return node; // leaf node
+    }
+    Node* deleteBSTNode(Node* node) {
+        Node* node_child;
+        if (node->left != nil) node_child = node->left;
+        else node_child = node->right;
+        
+        // Link child to parent
+        node_child->parent = node->parent;
+
+        if (node->parent == nil) root = node_child;
+        else if (node == node->parent->left) node->parent->left = node_child;
+        else node->parent->right = node_child;
+        delete node;
+        return node_child;
+    }
+    void deleteFixup(Node* x) {
+        while(x != root && x->color == 'b') { // not case 1
+            if (x == x->parent->left) { // x is left child
+                Node* sibling = x->parent->right;
+                // Case 2: sibling is red
+                if (sibling->color == 'r') {
+                    sibling->color = 'b';
+                    x->parent->color = 'r';
+                    rotateLeft(x->parent);
+                    sibling = x->parent->right;
+                }
+                // Case 3: sibling is black, both of sibling's children are black
+                else if (sibling->left->color == 'b' && sibling->right->color == 'b') {
+                    sibling->color = 'r';
+                    x = x->parent;
+                }
+                else {
+                    // Case 4: sibling is black, one of sibling's children is red
+
+                    // sibling's left child is red
+                    if (sibling->left->color == 'r') {
+                        sibling->left->color = 'b';
+                        sibling->color = 'r';
+                        rotateRight(sibling);
+                        sibling = x->parent->right;
+                    }
+                    //sibling's right child is red
+                    sibling->color = x->parent->color;
+                    x->parent->color = 'b';
+                    sibling->right->color = 'b';
+                    rotateLeft(x->parent);
+                    x = root;
+                }
+            }
+            else{ // x is right child
+                Node* sibling = x->parent->left;
+                // Case 2: sibling is red
+                if (sibling->color == 'r') {
+                    sibling->color = 'b';
+                    x->parent->color = 'r';
+                    rotateRight(x->parent);
+                    sibling = x->parent->left;
+                }
+                // Case 3: sibling is black, both of sibling's children are black
+                else if (sibling->right->color == 'b' && sibling->left->color == 'b') {
+                    sibling->color = 'r';
+                    x = x->parent;
+                }
+                else {
+                    // Case 4: sibling is black, one of sibling's children is red
+
+                    // sibling's right child is red
+                    if (sibling->right->color == 'r') {
+                        sibling->right->color = 'b';
+                        sibling->color = 'r';
+                        rotateLeft(sibling);
+                        sibling = x->parent->left;
+                    }
+                    //sibling's left child is red
+                    sibling->color = x->parent->color;
+                    x->parent->color = 'b';
+                    sibling->left->color = 'b';
+                    rotateRight(x->parent);
+                    x = root;
+                }
+            }
+        }
+        x->color = 'b';
     }
 public:
     ConcreteAuctionTree() {
@@ -227,9 +351,17 @@ public:
         new_node->parent = parent;
 
         // Link new_node to parent
-        if (parent == nil) root = new_node;
-        else if (price < parent->price) parent->left = new_node;
-        else parent->right = new_node;
+        if (parent == nil)
+            root = new_node;
+        else if (price < parent->price) 
+            parent->left = new_node;
+        else if (price > parent->price)
+            parent->right = new_node;
+        else if (price == parent->price)
+            if (itemID < parent->id)
+                parent->left = new_node;
+            else
+                parent->right = new_node;
 
         insertFixup(new_node);
 
@@ -237,9 +369,27 @@ public:
     }
 
     void deleteItem(int itemID) override {
-        // TODO: Implement Red-Black Tree deletion
-        // This is complex - handle all cases carefully
+        Node* node = searchItem(itemID);
+        
+        if (node == nil) {
+            cout << "Item ID: " << itemID << " not found. (skipped deleting)" << endl;
+            return;
+        }
+        Node* replacement_node = getReplacementNode(node);
 
+        // Copy replacement_node data to node
+        node->id = replacement_node->id;
+        node->price = replacement_node->price;
+
+        char deleted_color = replacement_node->color;
+        
+        Node* node_child = deleteBSTNode(replacement_node);
+        
+        // Only need fixup if a black node was deleted
+        if (deleted_color == 'b') {
+            deleteFixup(node_child);
+        }
+        
         traverseInorder();
     }
     ~ConcreteAuctionTree() {

@@ -195,6 +195,158 @@ void test_PartA_DataStructures() {
         return true; // Pass if no crash
     }());
     delete tree8;
+
+    // ===== DELETION TESTS =====
+    
+    // Test 9: Basic deletion - delete leaf node
+    AuctionTree* tree9 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Leaf Node", [&]() {
+        tree9->insertItem(2, 20);
+        tree9->insertItem(1, 10);
+        tree9->insertItem(3, 30);
+        tree9->deleteItem(1); // Delete leaf
+        return true; // Pass if no crash
+    }());
+    delete tree9;
+
+    // Test 10: Delete node with one child
+    AuctionTree* tree10 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Node with One Child", [&]() {
+        tree10->insertItem(2, 20);
+        tree10->insertItem(1, 10);
+        tree10->insertItem(4, 40);
+        tree10->insertItem(3, 30);
+        tree10->deleteItem(4); // Node 4 has only left child
+        return true; // Pass if no crash
+    }());
+    delete tree10;
+
+    // Test 11: Delete node with two children
+    AuctionTree* tree11 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Node with Two Children", [&]() {
+        tree11->insertItem(4, 40);
+        tree11->insertItem(2, 20);
+        tree11->insertItem(6, 60);
+        tree11->insertItem(1, 10);
+        tree11->insertItem(3, 30);
+        tree11->insertItem(5, 50);
+        tree11->insertItem(7, 70);
+        tree11->deleteItem(4); // Delete node with two children
+        return true; // Pass if no crash
+    }());
+    delete tree11;
+
+    // Test 12: Delete root node
+    AuctionTree* tree12 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Root Node", [&]() {
+        tree12->insertItem(2, 20);
+        tree12->insertItem(1, 10);
+        tree12->insertItem(3, 30);
+        tree12->deleteItem(2); // Delete root
+        return true; // Pass if no crash
+    }());
+    delete tree12;
+
+    // Test 13: Delete non-existent item
+    AuctionTree* tree13 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Non-Existent Item", [&]() {
+        tree13->insertItem(1, 10);
+        tree13->insertItem(2, 20);
+        tree13->deleteItem(999); // Should handle gracefully
+        return true; // Pass if no crash
+    }());
+    delete tree13;
+
+    // Test 14: Delete from single-node tree
+    AuctionTree* tree14 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Only Node", [&]() {
+        tree14->insertItem(1, 10);
+        tree14->deleteItem(1); // Tree becomes empty
+        return true; // Pass if no crash
+    }());
+    delete tree14;
+
+    // Test 15: Multiple deletions in sequence
+    AuctionTree* tree15 = createAuctionTree();
+    runner.runTest("AuctionTree: Multiple Sequential Deletions", [&]() {
+        tree15->insertItem(4, 40);
+        tree15->insertItem(2, 20);
+        tree15->insertItem(6, 60);
+        tree15->insertItem(1, 10);
+        tree15->insertItem(3, 30);
+        tree15->insertItem(5, 50);
+        tree15->insertItem(7, 70);
+        tree15->deleteItem(1);
+        tree15->deleteItem(7);
+        tree15->deleteItem(4);
+        tree15->deleteItem(2);
+        return true; // Pass if no crash, tests rebalancing
+    }());
+    delete tree15;
+
+    // Test 16: Delete all nodes one by one
+    AuctionTree* tree16 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete All Nodes", [&]() {
+        tree16->insertItem(1, 10);
+        tree16->insertItem(2, 20);
+        tree16->insertItem(3, 30);
+        tree16->insertItem(4, 40);
+        tree16->insertItem(5, 50);
+        tree16->deleteItem(3);
+        tree16->deleteItem(1);
+        tree16->deleteItem(5);
+        tree16->deleteItem(2);
+        tree16->deleteItem(4);
+        return true; // Pass if no crash
+    }());
+    delete tree16;
+
+    // Test 17: Delete with same prices (tests ID-based ordering)
+    AuctionTree* tree17 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Same Price Different IDs", [&]() {
+        tree17->insertItem(10, 100);
+        tree17->insertItem(5, 100);
+        tree17->insertItem(15, 100);
+        tree17->insertItem(3, 100);
+        tree17->insertItem(7, 100);
+        tree17->deleteItem(10); // Delete middle ID
+        tree17->deleteItem(3);  // Delete smallest ID
+        tree17->deleteItem(15); // Delete largest ID
+        return true; // Pass if no crash
+    }());
+    delete tree17;
+
+    // Test 18: Interleaved insert and delete
+    AuctionTree* tree18 = createAuctionTree();
+    runner.runTest("AuctionTree: Interleaved Insert/Delete", [&]() {
+        tree18->insertItem(1, 10);
+        tree18->insertItem(2, 20);
+        tree18->deleteItem(1);
+        tree18->insertItem(3, 30);
+        tree18->deleteItem(2);
+        tree18->insertItem(4, 40);
+        tree18->deleteItem(3);
+        tree18->insertItem(5, 50);
+        return true; // Pass if no crash
+    }());
+    delete tree18;
+
+    // Test 19: Delete causing black height fixup (complex RB case)
+    AuctionTree* tree19 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Triggering Fixup Cases", [&]() {
+        // Build a more complex tree to trigger various fixup cases
+        for (int i = 1; i <= 15; i++) {
+            tree19->insertItem(i, i * 10);
+        }
+        tree19->deleteItem(1);
+        tree19->deleteItem(2);
+        tree19->deleteItem(3);
+        tree19->deleteItem(8);
+        tree19->deleteItem(12);
+        return true; // Pass if no crash, tests complex rebalancing
+    }());
+    delete tree19;
+
 }
 
 // ==========================================
