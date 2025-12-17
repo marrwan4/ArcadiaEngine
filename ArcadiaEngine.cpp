@@ -361,18 +361,22 @@ public:
             parent->right = new_node;
         }
 
+        // O(log n)
         insertFixup(new_node);
 
+        // O(n)
         traverseInorder();
     }
 
     void deleteItem(int itemID) override {
+        // O(n)
         Node* node = searchItem(itemID);
         
         if (node == nil) {
             cout << "Item ID: " << itemID << " not found. (skipped deleting)" << endl;
             return;
         }
+        // O(log n)
         Node* replacement_node = getReplacementNode(node);
 
         // Copy replacement_node data to node
@@ -381,13 +385,16 @@ public:
 
         char deleted_color = replacement_node->color;
         
+        // O(log n)
         Node* node_child = deleteBSTNode(replacement_node);
         
         // Only need fixup if a black node was deleted
         if (deleted_color == 'b') {
+            // O(log n)
             deleteFixup(node_child);
         }
         
+        // O(n)
         traverseInorder();
     }
     ~ConcreteAuctionTree() {
