@@ -373,6 +373,8 @@ void test_PartA_DataStructures() {
     // 2. Leaderboard (Skip List)
     Leaderboard* board = createLeaderboard();
 
+    // ===== BASIC OPERATIONS =====
+
     // Test A: Basic High Score
     runner.runTest("Leaderboard: Add Scores & Get Top 1", [&]() {
         board->addScore(1, 100);
@@ -382,17 +384,290 @@ void test_PartA_DataStructures() {
     }());
 
     // Test B: Tie-Breaking Visual Example (Crucial!)
-    // PDF Visual Example: Player A (ID 10) 500pts, Player B (ID 20) 500pts.
-    // Correct Order: ID 10 then ID 20.
     runner.runTest("Leaderboard: Tie-Break (ID 10 before ID 20)", [&]() {
         board->addScore(10, 500);
         board->addScore(20, 500);
         vector<int> top = board->getTopN(2);
-        // We expect {10, 20} NOT {20, 10}
         if (top.size() < 2) return false;
         return (top[0] == 10 && top[1] == 20); 
     }());
-    
+
+    // Test C:  Descending Order by Score
+    runner.runTest("Leaderboard: Descending Score Order", [&]() {
+        board->addScore(101, 300);
+        board->addScore(102, 400);
+        board->addScore(103, 350);
+        vector<int> top = board->getTopN(5);
+        // Expected order: 102(400), 103(350), 101(300), 20(500), 10(500)
+        // Wait, 20 and 10 have 500, so:  10(500), 20(500), 102(400), 103(350), 101(300)
+        if (top.size() < 5) return false;
+        return (top[0] == 10 && top[1] == 20 && top[2] == 102 && top[3] == 103 && top[4] == 101);
+    }());
+
+    // ===== EDGE CASES:  EMPTY & SMALL INPUTS =====
+
+    runner.runTest("Leaderboard: Get Top N from Empty List", [&]() {
+        Leaderboard* emptyBoard = createLeaderboard();
+        vector<int> top = emptyBoard->getTopN(5);
+        bool result = top.empty();
+        delete emptyBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Get Top 0", [&]() {
+        vector<int> top = board->getTopN(0);
+        return top.empty();
+    }());
+
+    runner.runTest("Leaderboard: Request More Than Available", [&]() {
+        Leaderboard* smallBoard = createLeaderboard();
+        smallBoard->addScore(1, 100);
+        smallBoard->addScore(2, 200);
+        vector<int> top = smallBoard->getTopN(10); // Only 2 players
+        bool result = (top.size() == 2 && top[0] == 2 && top[1] == 1);
+        delete smallBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Single Player", [&]() {
+        Leaderboard* singleBoard = createLeaderboard();
+        singleBoard->addScore(42, 999);
+        vector<int> top = singleBoard->getTopN(1);
+        bool result = (! top.empty() && top[0] == 42);
+        delete singleBoard;
+        return result;
+    }());
+
+    // ===== TIE-BREAKING EDGE CASES =====
+
+    runner.runTest("Leaderboard: Multiple Ties with Different IDs", [&]() {
+        Leaderboard* tieBoard = createLeaderboard();
+        tieBoard->addScore(50, 1000);
+        tieBoard->addScore(30, 1000);
+        tieBoard->addScore(40, 1000);
+        tieBoard->addScore(20, 1000);
+        vector<int> top = tieBoard->getTopN(4);
+        // Expected: 20, 30, 40, 50 (ascending ID order)
+        bool result = (top.size() == 4 && 
+                    top[0] == 20 && top[1] == 30 && 
+                    top[2] == 40 && top[3] == 50);
+        delete tieBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Interleaved Scores and Ties", [&]() {
+        Leaderboard* mixBoard = createLeaderboard();
+        mixBoard->addScore(5, 800);
+        mixBoard->addScore(3, 900);
+        mixBoard->addScore(7, 800);
+        mixBoard->addScore(1, 900);
+        mixBoard->addScore(9, 700);
+        vector<int> top = mixBoard->getTopN(5);
+        // Expected: 1(900), 3(900), 5(800), 7(800), 9(700)
+        bool result = (top.size() == 5 && 
+                    top[0] == 1 && top[1] == 3 && 
+                    top[2] == 5 && top[3] == 7 && top[4] == 9);
+        delete mixBoard;
+        return result;
+    }());
+
+    // ===== DELETION TESTS =====
+
+    runner.runTest("Leaderboard: Remove Existing Player", [&]() {
+        Leaderboard* delBoard = createLeaderboard();
+        delBoard->addScore(1, 100);
+        delBoard->addScore(2, 200);
+        delBoard->addScore(3, 300);
+        delBoard->removePlayer(2); // Remove middle
+        vector<int> top = delBoard->getTopN(3);
+        // Expected: 3(300), 1(100)
+        bool result = (top. size() == 2 && top[0] == 3 && top[1] == 1);
+        delete delBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Remove Non-Existent Player", [&]() {
+        Leaderboard* delBoard = createLeaderboard();
+        delBoard->addScore(1, 100);
+        delBoard->removePlayer(999); // Doesn't exist
+        vector<int> top = delBoard->getTopN(1);
+        bool result = (top.size() == 1 && top[0] == 1);
+        delete delBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Remove from Empty List", [&]() {
+        Leaderboard* emptyDelBoard = createLeaderboard();
+        emptyDelBoard->removePlayer(1); // Should not crash
+        vector<int> top = emptyDelBoard->getTopN(1);
+        bool result = top.empty();
+        delete emptyDelBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Remove Top Player", [&]() {
+        Leaderboard* topDelBoard = createLeaderboard();
+        topDelBoard->addScore(1, 100);
+        topDelBoard->addScore(2, 200);
+        topDelBoard->addScore(3, 300);
+        topDelBoard->removePlayer(3); // Remove highest
+        vector<int> top = topDelBoard->getTopN(1);
+        bool result = (! top.empty() && top[0] == 2);
+        delete topDelBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Remove Last Player", [&]() {
+        Leaderboard* lastDelBoard = createLeaderboard();
+        lastDelBoard->addScore(1, 100);
+        lastDelBoard->addScore(2, 200);
+        lastDelBoard->addScore(3, 300);
+        lastDelBoard->removePlayer(1); // Remove lowest
+        vector<int> top = lastDelBoard->getTopN(3);
+        bool result = (top.size() == 2 && top[0] == 3 && top[1] == 2);
+        delete lastDelBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Remove All Players One by One", [&]() {
+        Leaderboard* clearBoard = createLeaderboard();
+        clearBoard->addScore(1, 100);
+        clearBoard->addScore(2, 200);
+        clearBoard->addScore(3, 300);
+        clearBoard->removePlayer(1);
+        clearBoard->removePlayer(2);
+        clearBoard->removePlayer(3);
+        vector<int> top = clearBoard->getTopN(1);
+        bool result = top.empty();
+        delete clearBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Remove Player with Tied Score", [&]() {
+        Leaderboard* tieDelBoard = createLeaderboard();
+        tieDelBoard->addScore(10, 500);
+        tieDelBoard->addScore(20, 500);
+        tieDelBoard->addScore(30, 500);
+        tieDelBoard->removePlayer(20); // Remove middle of tie
+        vector<int> top = tieDelBoard->getTopN(3);
+        bool result = (top.size() == 2 && top[0] == 10 && top[1] == 30);
+        delete tieDelBoard;
+        return result;
+    }());
+
+    // ===== DUPLICATE ID TESTS (SKIP LIST ALLOWS THIS) =====
+
+    runner.runTest("Leaderboard: Add Same Player Multiple Times", [&]() {
+        Leaderboard* dupBoard = createLeaderboard();
+        dupBoard->addScore(1, 100);
+        dupBoard->addScore(1, 200); // Same ID, different score
+        dupBoard->addScore(1, 150);
+        vector<int> top = dupBoard->getTopN(5);
+        // Skip list allows duplicates, so all 3 should exist
+        // Expected: 1(200), 1(150), 1(100)
+        bool result = (top.size() == 3 && 
+                    top[0] == 1 && top[1] == 1 && top[2] == 1);
+        delete dupBoard;
+        return result;
+    }());
+
+    // ===== EXTREME VALUES =====
+
+    runner.runTest("Leaderboard: Zero Score", [&]() {
+        Leaderboard* zeroBoard = createLeaderboard();
+        zeroBoard->addScore(1, 0);
+        zeroBoard->addScore(2, 100);
+        vector<int> top = zeroBoard->getTopN(2);
+        bool result = (top.size() == 2 && top[0] == 2 && top[1] == 1);
+        delete zeroBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Negative Scores", [&]() {
+        Leaderboard* negBoard = createLeaderboard();
+        negBoard->addScore(1, -100);
+        negBoard->addScore(2, 50);
+        negBoard->addScore(3, -200);
+        vector<int> top = negBoard->getTopN(3);
+        // Expected: 2(50), 1(-100), 3(-200)
+        bool result = (top.size() == 3 && 
+                    top[0] == 2 && top[1] == 1 && top[2] == 3);
+        delete negBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Very Large Scores", [&]() {
+        Leaderboard* largeBoard = createLeaderboard();
+        largeBoard->addScore(1, 2147483647); // INT_MAX
+        largeBoard->addScore(2, 2147483646);
+        vector<int> top = largeBoard->getTopN(2);
+        bool result = (top.size() == 2 && top[0] == 1 && top[1] == 2);
+        delete largeBoard;
+        return result;
+    }());
+
+    // ===== STRESS TEST =====
+
+    runner.runTest("Leaderboard: Large Number of Players", [&]() {
+        Leaderboard* stressBoard = createLeaderboard();
+        for (int i = 1; i <= 100; i++) {
+            stressBoard->addScore(i, i * 10);
+        }
+        vector<int> top = stressBoard->getTopN(5);
+        // Expected: 100, 99, 98, 97, 96
+        bool result = (top.size() == 5 && 
+                    top[0] == 100 && top[1] == 99 && 
+                    top[2] == 98 && top[3] == 97 && top[4] == 96);
+        delete stressBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Random Insert Order", [&]() {
+        Leaderboard* randomBoard = createLeaderboard();
+        randomBoard->addScore(50, 500);
+        randomBoard->addScore(10, 100);
+        randomBoard->addScore(90, 900);
+        randomBoard->addScore(30, 300);
+        randomBoard->addScore(70, 700);
+        vector<int> top = randomBoard->getTopN(5);
+        // Expected: 90(900), 70(700), 50(500), 30(300), 10(100)
+        bool result = (top.size() == 5 && 
+                    top[0] == 90 && top[1] == 70 && 
+                    top[2] == 50 && top[3] == 30 && top[4] == 10);
+        delete randomBoard;
+        return result;
+    }());
+
+    // ===== SKIP LIST SPECIFIC EDGE CASES =====
+
+    runner.runTest("Leaderboard: Level Reduction After Deletions", [&]() {
+        Leaderboard* levelBoard = createLeaderboard();
+        // Add many players to increase skip list levels
+        for (int i = 1; i <= 50; i++) {
+            levelBoard->addScore(i, i * 10);
+        }
+        // Remove most of them
+        for (int i = 1; i <= 45; i++) {
+            levelBoard->removePlayer(i);
+        }
+        vector<int> top = levelBoard->getTopN(10);
+        // Should have 5 players left:  46-50
+        bool result = (top.size() == 5 && top[0] == 50);
+        delete levelBoard;
+        return result;
+    }());
+
+    runner.runTest("Leaderboard: Insert After Delete", [&]() {
+        Leaderboard* reinsertBoard = createLeaderboard();
+        reinsertBoard->addScore(1, 100);
+        reinsertBoard->addScore(2, 200);
+        reinsertBoard->removePlayer(2);
+        reinsertBoard->addScore(3, 300);
+        vector<int> top = reinsertBoard->getTopN(3);
+        bool result = (top.size() == 2 && top[0] == 3 && top[1] == 1);
+        delete reinsertBoard;
+        return result;
+    }());
     delete board;
 
     // 3. AuctionTree (Red-Black Tree)

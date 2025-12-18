@@ -134,6 +134,7 @@ public:
         }
     }
     void addScore(int playerID, int score) override {
+        // time complexity: O(log n)
         vector<SkipNode*> update(maxLevel + 1);
         SkipNode* curr = head;
         // 1. Find insert position (O(log n))
@@ -159,6 +160,7 @@ public:
         }
     }
     void removePlayer(int playerID) override {
+        // time complexity: O(log n) for skip list delete + O(n) for search
         SkipNode* target = nullptr;
         SkipNode* scan = head->forward[0];
         // 1. Linear Scan to find target score (O(N))
@@ -200,9 +202,9 @@ public:
         }
     }
     vector<int> getTopN(int n) override {
+        // time complexity: O(n)
         vector<int> results;
         SkipNode* curr = head->forward[0];
-
         // Simple traversal of the sorted list
         while (curr != nullptr && results.size() < n) {
             results.push_back(curr->playerID);
