@@ -70,12 +70,305 @@ void test_PartA_DataStructures() {
 
     // 1. PlayerTable (Double Hashing)
     // Requirement: Basic Insert and Search
-    PlayerTable* table = createPlayerTable();
-    runner.runTest("PlayerTable: Insert 'Alice' and Search", [&]() {
+    // ========== BASIC FUNCTIONALITY ==========
+
+    runner.runTest("PlayerTable: Insert and Search - Basic", [&]() {
+        PlayerTable* table = createPlayerTable();
         table->insert(101, "Alice");
-        return table->search(101) == "Alice";
+        bool result = table->search(101) == "Alice";
+        delete table;
+        return result;
     }());
-    delete table;
+
+    runner.runTest("PlayerTable: Search Non-Existent Player", [&]() {
+        PlayerTable* table = createPlayerTable();
+        bool result = table->search(999) == "";
+        delete table;
+        return result;
+    }());
+
+    runner.runTest("PlayerTable: Update Existing Player", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(101, "Alice");
+        table->insert(101, "Alice Updated");
+        bool result = table->search(101) == "Alice Updated";
+        delete table;
+        return result;
+    }());
+
+    // ========== COLLISION TESTS ==========
+
+    runner. runTest("PlayerTable:  Collision - Same h1 Value", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(101, "Player1");  // h1 = 101 % 101 = 0
+        table->insert(202, "Player2");  // h1 = 202 % 101 = 0 (collision!)
+        bool result = table->search(101) == "Player1" && table->search(202) == "Player2";
+        delete table;
+        return result;
+    }());
+
+    runner.runTest("PlayerTable: Multiple Collisions Chain", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(5, "Alpha");    // h1 = 5
+        table->insert(106, "Beta");   // h1 = 106 % 101 = 5 (collision!)
+        table->insert(207, "Gamma");  // h1 = 207 % 101 = 5 (collision!)
+        table->insert(308, "Delta");  // h1 = 308 % 101 = 5 (collision!)
+        bool result = table->search(5) == "Alpha" && 
+                    table->search(106) == "Beta" && 
+                    table->search(207) == "Gamma" &&
+                    table->search(308) == "Delta";
+        delete table;
+        return result;
+    }());
+
+    runner.runTest("PlayerTable: Search After Collision", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(10, "John");
+        table->insert(111, "Jane");  // 111 % 101 = 10 (collision with John)
+        bool result = table->search(111) == "Jane";
+        delete table;
+        return result;
+    }());
+
+    // ========== EDGE CASE:  h2 = 0 (Critical Bug Test) ==========
+
+    runner.runTest("PlayerTable: h2 Edge Case - playerID divisible by 97", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(97, "EdgeCase1");   // 97 % 97 = 0, h2 = 97 - 0 = 97
+        table->insert(194, "EdgeCase2");  // 194 % 97 = 0, h2 = 97 - 0 = 97
+        bool result = table->search(97) == "EdgeCase1" && table->search(194) == "EdgeCase2";
+        delete table;
+        return result;
+    }());
+
+    runner.runTest("PlayerTable: h2 = 1 Edge Case", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(96, "Test96");   // 96 % 97 = 96, h2 = 97 - 96 = 1
+        table->insert(193, "Test193"); // 193 % 97 = 96, h2 = 1 (collision + small step)
+        bool result = table->search(96) == "Test96" && table->search(193) == "Test193";
+        delete table;
+        return result;
+    }());
+
+    // ========== EMPTY SLOT EARLY TERMINATION ==========
+
+    runner.runTest("PlayerTable: Search Stops at Empty Slot", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(50, "Exists");
+        bool result = table->search(999) == "";  // Should stop early at empty slot
+        delete table;
+        return result;
+    }());
+
+    runner.runTest("PlayerTable: Search in Collision Chain with Gap", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(20, "First");
+        table->insert(121, "Second");  // 121 % 101 = 20, collision
+        bool result = table->search(222) == "";
+        delete table;
+        return result;
+    }());
+
+    // ========== UPDATE DURING COLLISION ==========
+
+    runner.runTest("PlayerTable: Update Player in Collision Chain", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(15, "Original");
+        table->insert(116, "Collider");  // 116 % 101 = 15
+        table->insert(15, "Updated");    // Should update, not insert again
+        bool result = table->search(15) == "Updated" && table->search(116) == "Collider";
+        delete table;
+        return result;
+    }());
+
+    // ========== FULL TABLE TESTS ==========
+
+    runner.runTest("PlayerTable: Fill Table Completely", [&]() {
+        PlayerTable* table = createPlayerTable();
+        for (int i = 0; i < 101; i++) {
+            table->insert(i, "Player" + to_string(i));
+        }
+        bool result = table->search(0) == "Player0" && 
+                    table->search(50) == "Player50" && 
+                    table->search(100) == "Player100";
+        delete table;
+        return result;
+    }());
+
+    runner.runTest("PlayerTable: Insert When Table is Full", [&]() {
+        PlayerTable* table = createPlayerTable();
+        for (int i = 0; i < 101; i++) {
+            table->insert(i, "Player" + to_string(i));
+        }
+        cout << "Expected output: 'Table is Full' -> ";
+        table->insert(200, "Overflow");
+        bool result = table->search(200) == "";  // Should not be inserted
+        delete table;
+        return result;
+    }());
+
+    runner.runTest("PlayerTable: Search in Full Table", [&]() {
+        PlayerTable* table = createPlayerTable();
+        for (int i = 0; i < 101; i++) {
+            table->insert(i * 100, "Player" + to_string(i));
+        }
+        bool result = table->search(5000) == "Player50";
+        delete table;
+        return result;
+    }());
+
+    // ========== BOUNDARY VALUES ==========
+
+    runner.runTest("PlayerTable: Insert playerID = 0", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(0, "ZeroPlayer");
+        bool result = table->search(0) == "ZeroPlayer";
+        delete table;
+        return result;
+    }());
+
+    runner.runTest("PlayerTable: Insert Large playerID", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(999999, "LargeID");
+        bool result = table->search(999999) == "LargeID";
+        delete table;
+        return result;
+    }());
+
+    runner.runTest("PlayerTable: Insert Negative playerID", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(-5, "NegativeID");
+        bool result = table->search(-5) == "NegativeID";
+        delete table;
+        return result;
+    }());
+
+    // ========== STRESS TEST:  MANY COLLISIONS ==========
+
+    runner.runTest("PlayerTable: 50 Insertions with Mixed Collisions", [&]() {
+        PlayerTable* table = createPlayerTable();
+        for (int i = 0; i < 50; i++) {
+            table->insert(i * 101, "Player" + to_string(i));  // All map to index 0! 
+        }
+        bool result = table->search(0) == "Player0" && 
+                    table->search(101) == "Player1" && 
+                    table->search(4949) == "Player49";
+        delete table;
+        return result;
+    }());
+
+    // ========== EMPTY TABLE SEARCH ==========
+
+    runner. runTest("PlayerTable: Search in Empty Table", [&]() {
+        PlayerTable* table = createPlayerTable();
+        bool result = table->search(123) == "";
+        delete table;
+        return result;
+    }());
+
+    // ========== SEQUENTIAL IDs WITH COLLISIONS ==========
+
+    runner. runTest("PlayerTable: Sequential IDs Causing Collisions", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(1, "One");
+        table->insert(102, "OneTwoTwo");  // 102 % 101 = 1
+        table->insert(203, "TwoThreeThree");  // 203 % 101 = 1
+        bool result = table->search(1) == "One" && 
+                    table->search(102) == "OneTwoTwo" && 
+                    table->search(203) == "TwoThreeThree";
+        delete table;
+        return result;
+    }());
+
+    // ========== SPECIAL NAMES ==========
+
+    runner.runTest("PlayerTable: Empty String Name", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(42, "");
+        bool result = table->search(42) == "";
+        delete table;
+        return result;
+    }());
+
+    runner.runTest("PlayerTable: Very Long Name", [&]() {
+        PlayerTable* table = createPlayerTable();
+        string longName(1000, 'X');
+        table->insert(77, longName);
+        bool result = table->search(77) == longName;
+        delete table;
+        return result;
+    }());
+
+    runner.runTest("PlayerTable: Special Characters in Name", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(88, "Alice@#$%^&*()");
+        bool result = table->search(88) == "Alice@#$%^&*()";
+        delete table;
+        return result;
+    }());
+
+    // ========== CRITICAL BUG FINDER ==========
+
+    runner.runTest("PlayerTable:  Near Full Table with Collisions", [&]() {
+        PlayerTable* table = createPlayerTable();
+        for (int i = 0; i < 100; i++) {
+            table->insert(i, "Player" + to_string(i));
+        }
+        table->insert(97, "Updated97");  // Update existing, not insert new
+        bool result = table->search(97) == "Updated97";
+        delete table;
+        return result;
+    }());
+
+    // ========== MULTIPLE UPDATES ==========
+
+    runner.runTest("PlayerTable: Multiple Updates Same Player", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(123, "Version1");
+        table->insert(123, "Version2");
+        table->insert(123, "Version3");
+        table->insert(123, "Final");
+        bool result = table->search(123) == "Final";
+        delete table;
+        return result;
+    }());
+
+    // ========== COLLISION THEN UPDATE ==========
+
+    runner.runTest("PlayerTable: Collision Then Update First Element", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(50, "Original50");
+        table->insert(151, "Player151");  // 151 % 101 = 50, collision
+        table->insert(50, "Updated50");   // Update first element in chain
+        bool result = table->search(50) == "Updated50" && table->search(151) == "Player151";
+        delete table;
+        return result;
+    }());
+
+    runner.runTest("PlayerTable: Collision Then Update Second Element", [&]() {
+        PlayerTable* table = createPlayerTable();
+        table->insert(50, "Player50");
+        table->insert(151, "Original151");  // 151 % 101 = 50, collision
+        table->insert(151, "Updated151");   // Update second element in chain
+        bool result = table->search(50) == "Player50" && table->search(151) == "Updated151";
+        delete table;
+        return result;
+    }());
+
+    // ========== WRAP AROUND TEST ==========
+
+    runner.runTest("PlayerTable: Probing Wraps Around Table", [&]() {
+        PlayerTable* table = createPlayerTable();
+        // Fill slots 95-100 to force wrap around
+        for (int i = 95; i <= 100; i++) {
+            table->insert(i, "Player" + to_string(i));
+        }
+        // Insert something that hashes near end and must wrap
+        table->insert(9995, "WrapTest");  // 9995 % 101 = 95, will need to wrap
+        bool result = table->search(9995) == "WrapTest";
+        delete table;
+        return result;
+    }());
 
     // 2. Leaderboard (Skip List)
     Leaderboard* board = createLeaderboard();

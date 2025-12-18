@@ -27,26 +27,25 @@ using namespace std;
 
 class ConcretePlayerTable : public PlayerTable {
 private:
-    // TODO: Define your data structures here
+    // Define your data structures here
     // Hint: You'll need a hash table with double hashing collision resolution
     struct Entry{
         int playerId = -1;
         string name = "";
     };
-
-
     Entry arr[101];
     int count;
 
 public:
     ConcretePlayerTable() {
-        // TODO: Initialize your hash table
+        // Initialize your hash table
         this->count = 0;
     }
 
     void insert(int playerID, string name) override {
-        // TODO: Implement double hashing insert
+        // Implement double hashing insert
         // Remember to handle collisions using h1(key) + i * h2(key)
+        // time complexity: O(1) on average, O(n) in worst case
         int index;
 
         if (count == 101){
@@ -61,37 +60,30 @@ public:
                 this->count++;
                 return;
             }
-
             if (arr[index].playerId == playerID) {
                 arr[index].name = name; // update
                 return;
             }
-
         }
         cout << "Table is Full" << endl;
-
     }
-
     string search(int playerID) override {
-        // TODO: Implement double hashing search
+        // Implement double hashing search
         // Return "" if player not found
+        // time complexity: O(1) on average, O(n) in worst case
         for (int i = 0; i < 101; i++) {
             int index = ((playerID%101) + i * (97 - playerID%97))%101;
-
             // Stop early if slot is empty
             if (arr[index].playerId == -1) {
                 return "";
             }
-
             // Found the player
             if (arr[index].playerId == playerID) {
                 return arr[index].name;
             }
         }
-
         return "";
     }
-
 };
 
 // --- 2. Leaderboard (Skip List) ---
