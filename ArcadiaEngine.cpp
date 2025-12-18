@@ -516,7 +516,7 @@ public:
         insertFixup(new_node);
 
         // O(n)
-        traverseInorder();
+        // traverseInorder();
     }
 
     void deleteItem(int itemID) override {
@@ -548,7 +548,7 @@ public:
         nil->parent = nullptr;
         
         // O(n)
-        traverseInorder();
+        // traverseInorder();
     }
     ~ConcreteAuctionTree() {
         if (root != nil) {
