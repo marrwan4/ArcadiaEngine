@@ -906,17 +906,15 @@ int ServerKernel::minIntervals(vector<char>& tasks, int n) {
     // Count how many tasks have this maximum frequency
     int count_max = 0;
     for (int f : freq) {
-        if (f == f_max)
+        if (f == f_max) {
             count_max++;
+        }
     }
 
     int totalTasks = tasks.size();
 
     // Greedy formula
-    int result = max(
-            totalTasks,
-            (f_max - 1) * (n + 1) + count_max
-    );
+    int result = max(totalTasks,(f_max - 1) * (n + 1) + count_max);
 
     return result;
 
