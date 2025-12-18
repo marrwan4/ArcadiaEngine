@@ -53,13 +53,19 @@ public:
             return;
         }
         for (int i = 0; i < 101; ++i) {
-            index = ((playerID%101) + i * (97 + playerID%97))%101;
+            index = ((playerID%101) + i * (97 - playerID%97))%101;
             if(arr[index].playerId == -1){
                 arr[index].playerId = playerID;
                 arr[index].name = name;
                 this->count++;
                 return;
             }
+
+            if (arr[index].playerId == playerID) {
+                arr[index].name = name; // update
+                return;
+            }
+
         }
         cout << "Table is Full" << endl;
 
@@ -69,7 +75,7 @@ public:
         // TODO: Implement double hashing search
         // Return "" if player not found
         for (int i = 0; i < 101; i++) {
-            int index = ((playerID%101) + i * (1 + playerID%100))%101;
+            int index = ((playerID%101) + i * (97 - playerID%97))%101;
 
             // Stop early if slot is empty
             if (arr[index].playerId == -1) {
