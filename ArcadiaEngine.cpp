@@ -623,8 +623,6 @@ int InventorySystem::optimizeLootSplit(int n, vector<int>& coins) {
 int InventorySystem::maximizeCarryValue(int capacity, vector<pair<int, int>>& items) {
     // Complexity: O(n × W) time, O(W) space
     // where n = number of items, W = capacity
-    
-
     vector<int> dp(capacity + 1, 0);
 
     for (auto& item : items) {
@@ -643,12 +641,39 @@ int InventorySystem::maximizeCarryValue(int capacity, vector<pair<int, int>>& it
 }
 
 long long InventorySystem::countStringPossibilities(string s) {
-    // TODO: Implement string decoding DP
-    // Complexity: O(n) time, O(n) space where n = length of string
+    // Complexity: O(n) time, O(1) space
     // Rules: "uu" can be decoded as "w" or "uu"
     //        "nn" can be decoded as "m" or "nn"
     // Count total possible decodings
-    return 0;
+    const long long MOD = 1e9 + 7;
+    // Empty string:  1 way
+    if (s.empty()) {
+        return 1;
+    }
+    int n = s.length();
+    long long prev2 = 1;  // dp[0]
+    long long prev1 = 1;  // dp[1]
+    long long curr = 1;
+    // Check for invalid characters at start
+    if (s[0] == 'm' || s[0] == 'w') {
+        return 0;
+    }
+    for (int i = 2; i <= n; i++) {
+        // Check for invalid characters
+        if (s[i-1] == 'm' || s[i-1] == 'w') {
+            return 0;
+        }
+        // Always can keep current character as-is
+        curr = prev1;
+        // Check if we can merge previous two characters
+        if ((s[i-2] == 'u' && s[i-1] == 'u') || (s[i-2] == 'n' && s[i-1] == 'n')) {
+            curr = (curr + prev2) % MOD;
+        }
+        // Shift values
+        prev2 = prev1;
+        prev1 = curr;
+    }
+    return curr;
 }
 
 // =========================================================
@@ -806,7 +831,7 @@ long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long lo
 
 string WorldNavigator::sumMinDistancesBinary(int n, vector<vector<int>>& roads) {
     // time: O(V^3)
-    // TODO: Implement All-Pairs Shortest Path (Floyd-Warshall)
+    // Implement All-Pairs Shortest Path (Floyd-Warshall)
     // Sum all shortest distances between unique pairs (i < j)
     // Return the sum as a binary string
     // Hint: Handle large numbers carefully
