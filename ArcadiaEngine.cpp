@@ -88,24 +88,21 @@ public:
 
 // --- 2. Leaderboard (Skip List) ---
 
-struct SkipNode {
-    int playerID;
-    int score;
-    int level;
-    vector<SkipNode*> forward;
-
-    SkipNode(int id, int s, int lvl) : playerID(id), score(s), level(lvl) {
-        forward.resize(lvl + 1, nullptr);
-    }
-};
-
 class ConcreteLeaderboard : public Leaderboard {
 private:
+    struct SkipNode {
+        int playerID;
+        int score;
+        int level;
+        vector<SkipNode*> forward;
+        SkipNode(int id, int s, int lvl) : playerID(id), score(s), level(lvl) {
+            forward.resize(lvl + 1, nullptr);
+        }
+    };
     SkipNode* head;
     int maxLevel;
     float probability;
     int currentLevel;
-
     // Helper: Coin flip to determine node level
     int randomLevel() const {
         int lvl = 0;
@@ -114,7 +111,6 @@ private:
         }
         return lvl;
     }
-
     static bool isHigherRank(int scoreA, int idA, int scoreB, int idB) {
         if (scoreA > scoreB) return true;
         if (scoreA == scoreB && idA < idB) return true;
@@ -129,7 +125,6 @@ public:
         head = new SkipNode(-1, INT_MAX, maxLevel);
         srand(time(nullptr));
     }
-
     ~ConcreteLeaderboard() {
         SkipNode* curr = head;
         while (curr) {
@@ -138,11 +133,9 @@ public:
             curr = next;
         }
     }
-
     void addScore(int playerID, int score) override {
         vector<SkipNode*> update(maxLevel + 1);
         SkipNode* curr = head;
-
         // 1. Find insert position (O(log n))
         for (int i = currentLevel; i >= 0; i--) {
             while (curr->forward[i] != nullptr && isHigherRank(curr->forward[i]->score, curr->forward[i]->playerID, score, playerID)) {
@@ -150,7 +143,6 @@ public:
             }
             update[i] = curr;
         }
-
         // 2. Generate random level
         int newLevel = randomLevel();
         if (newLevel > currentLevel) {
@@ -159,7 +151,6 @@ public:
             }
             currentLevel = newLevel;
         }
-
         // 3. Insert Node
         auto* newNode = new SkipNode(playerID, score, newLevel);
         for (int i = 0; i <= newLevel; i++) {
@@ -167,11 +158,9 @@ public:
             update[i]->forward[i] = newNode;
         }
     }
-
     void removePlayer(int playerID) override {
         SkipNode* target = nullptr;
         SkipNode* scan = head->forward[0];
-
         // 1. Linear Scan to find target score (O(N))
         while (scan != nullptr) {
             if (scan->playerID == playerID) {
@@ -180,37 +169,36 @@ public:
             }
             scan = scan->forward[0];
         }
-
-        if (!target) return; // Player not found
-
+        if (!target) {
+            return; // Player not found
+        }
         // 2. Standard Skip List Delete (O(log n)) using the score we just found
         vector<SkipNode*> update(maxLevel + 1);
         SkipNode* curr = head;
         int targetScore = target->score;
         int targetID = target->playerID;
-
         for (int i = currentLevel; i >= 0; i--) {
             while (curr->forward[i] != nullptr && isHigherRank(curr->forward[i]->score, curr->forward[i]->playerID, targetScore, targetID)) {
                 curr = curr->forward[i];
             }
             update[i] = curr;
         }
-
         // 3. Unlink the node
-        if (curr->forward[0] == target) {
+        // After traversal, update[0]->forward[0] should point to target (or a node with same rank)
+        SkipNode* nodeToDelete = update[0]->forward[0];
+        // Verify this is actually our target node
+        if (nodeToDelete != nullptr && nodeToDelete == target) {
             for (int i = 0; i <= currentLevel; i++) {
                 if (update[i]->forward[i] != target) break;
                 update[i]->forward[i] = target->forward[i];
             }
             delete target;
-
-            // reduces level if needed
+            // Reduce level if needed
             while (currentLevel > 0 && head->forward[currentLevel] == nullptr) {
                 currentLevel--;
             }
         }
     }
-
     vector<int> getTopN(int n) override {
         vector<int> results;
         SkipNode* curr = head->forward[0];
