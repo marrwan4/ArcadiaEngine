@@ -922,26 +922,223 @@ void test_PartA_DataStructures() {
 // ==========================================
 
 void test_PartB_Inventory() {
-    cout << "\n--- Part B: Inventory System ---" << endl;
+    cout << "\n--- Part B:  Inventory System ---" << endl;
 
-    // 1. Loot Splitting (Partition)
-    // PDF Example: coins = {1, 2, 4} -> Best split {4} vs {1,2} -> Diff 1
+    // ===== 1. LOOT SPLITTING (PARTITION PROBLEM) =====
+    
+    // PDF Example 1: coins = {1, 2, 4} -> Best split {4} vs {1,2} -> Diff 1
     runner.runTest("LootSplit: {1, 2, 4} -> Diff 1", [&]() {
         vector<int> coins = {1, 2, 4};
         return InventorySystem::optimizeLootSplit(3, coins) == 1;
     }());
 
-    // 2. Inventory Packer (Knapsack)
-    // PDF Example: Cap=10, Items={{1,10}, {2,20}, {3,30}}. All fit. Value=60.
-    runner.runTest("Knapsack: Cap 10, All Fit -> Value 60", [&]() {
-        vector<pair<int, int>> items = {{1, 10}, {2, 20}, {3, 30}};
-        return InventorySystem::maximizeCarryValue(10, items) == 60;
+    // PDF Example 2: coins = {2, 2} -> Perfect split {2} vs {2} -> Diff 0
+    runner.runTest("LootSplit: {2, 2} -> Diff 0", [&]() {
+        vector<int> coins = {2, 2};
+        return InventorySystem:: optimizeLootSplit(2, coins) == 0;
     }());
 
-    // 3. Chat Autocorrect (String DP)
-    // PDF Example: "uu" -> "uu" or "w" -> 2 possibilities
-    runner.runTest("ChatDecorder: 'uu' -> 2 Possibilities", [&]() {
+    // Edge Case: Single coin (one person gets it all)
+    runner.runTest("LootSplit: Single coin {5} -> Diff 5", [&]() {
+        vector<int> coins = {5};
+        return InventorySystem::optimizeLootSplit(1, coins) == 5;
+    }());
+
+    // Edge Case: All same values (perfect split or diff 1)
+    runner.runTest("LootSplit: {1, 1, 1, 1} -> Diff 0", [&]() {
+        vector<int> coins = {1, 1, 1, 1};
+        return InventorySystem::optimizeLootSplit(4, coins) == 0;
+    }());
+
+    // Edge Case: Odd number of identical coins
+    runner.runTest("LootSplit: {3, 3, 3} -> Diff 3", [&]() {
+        vector<int> coins = {3, 3, 3};
+        return InventorySystem::optimizeLootSplit(3, coins) == 3;
+    }());
+
+    // Edge Case: Large difference in values
+    runner.runTest("LootSplit: {1, 1, 100} -> Diff 98", [&]() {
+        vector<int> coins = {1, 1, 100};
+        return InventorySystem::optimizeLootSplit(3, coins) == 98;
+    }());
+
+    // Edge Case: Already perfectly balanced
+    runner.runTest("LootSplit: {5, 5, 5, 5} -> Diff 0", [&]() {
+        vector<int> coins = {5, 5, 5, 5};
+        return InventorySystem::optimizeLootSplit(4, coins) == 0;
+    }());
+
+    // Edge Case: Fibonacci-like sequence
+    runner.runTest("LootSplit: {1, 2, 3, 5, 8} -> Diff 1", [&]() {
+        vector<int> coins = {1, 2, 3, 5, 8};
+        // Total = 19.  Best:  {8,2} = 10 vs {5,3,1} = 9 -> Diff 1
+        return InventorySystem::optimizeLootSplit(5, coins) == 1;
+    }());
+
+    // Edge Case: Two coins only
+    runner.runTest("LootSplit: {3, 7} -> Diff 4", [&]() {
+        vector<int> coins = {3, 7};
+        return InventorySystem::optimizeLootSplit(2, coins) == 4;
+    }());
+
+    // ===== 2. INVENTORY PACKER (KNAPSACK) =====
+    
+    // PDF Example:  Cap=10, Items={{1,10}, {2,20}, {3,30}}. All fit.  Value=60.
+    runner. runTest("Knapsack:  Cap 10, All Fit -> Value 60", [&]() {
+        vector<pair<int, int>> items = {{1, 10}, {2, 20}, {3, 30}};
+        return InventorySystem:: maximizeCarryValue(10, items) == 60;
+    }());
+
+    // Edge Case:  Capacity is 0
+    runner.runTest("Knapsack: Cap 0 -> Value 0", [&]() {
+        vector<pair<int, int>> items = {{1, 10}, {2, 20}};
+        return InventorySystem::maximizeCarryValue(0, items) == 0;
+    }());
+
+    // Edge Case: No items
+    runner.runTest("Knapsack: No items -> Value 0", [&]() {
+        vector<pair<int, int>> items = {};
+        return InventorySystem::maximizeCarryValue(10, items) == 0;
+    }());
+
+    // Edge Case: All items too heavy
+    runner.runTest("Knapsack: All too heavy -> Value 0", [&]() {
+        vector<pair<int, int>> items = {{10, 100}, {20, 200}};
+        return InventorySystem::maximizeCarryValue(5, items) == 0;
+    }());
+
+    // Edge Case: Single item that fits
+    runner.runTest("Knapsack: Single item fits -> Value 50", [&]() {
+        vector<pair<int, int>> items = {{5, 50}};
+        return InventorySystem::maximizeCarryValue(10, items) == 50;
+    }());
+
+    // Edge Case: Single item too heavy
+    runner.runTest("Knapsack: Single item too heavy -> Value 0", [&]() {
+        vector<pair<int, int>> items = {{15, 50}};
+        return InventorySystem::maximizeCarryValue(10, items) == 0;
+    }());
+
+    // Edge Case: Choose lighter item with more value
+    runner.runTest("Knapsack:  Optimal choice -> Value 100", [&]() {
+        vector<pair<int, int>> items = {{5, 60}, {3, 50}, {4, 70}};
+        // Cap = 7:  Best is {3,50} + {4,70} = 120?  No, weight = 7, value = 120
+        return InventorySystem:: maximizeCarryValue(7, items) == 120;
+    }());
+
+    // Edge Case:  Exactly at capacity
+    runner.runTest("Knapsack: Exact capacity -> Value 100", [&]() {
+        vector<pair<int, int>> items = {{5, 50}, {5, 50}};
+        return InventorySystem::maximizeCarryValue(10, items) == 100;
+    }());
+
+    runner.runTest("Knapsack: Many small > One large", [&]() {
+    vector<pair<int, int>> items = {{1, 15}, {1, 15}, {1, 15}, {5, 40}};
+    // Cap = 5: Best is 3 items of {1,15} = 45 > {5,40} = 40
+    return InventorySystem:: maximizeCarryValue(5, items) == 45;
+    }());
+
+    // Edge Case: All items weight 1, capacity matches count
+    runner.runTest("Knapsack: All weight 1 -> Sum all", [&]() {
+        vector<pair<int, int>> items = {{1, 10}, {1, 20}, {1, 30}, {1, 40}};
+        return InventorySystem::maximizeCarryValue(4, items) == 100;
+    }());
+
+    // ===== 3. CHAT AUTOCORRECT (STRING DP) =====
+    
+    // PDF Example 1: "uu" -> "uu" or "w" -> 2 possibilities
+    runner. runTest("ChatDecoder: 'uu' -> 2 Possibilities", [&]() {
         return InventorySystem::countStringPossibilities("uu") == 2;
+    }());
+
+    // PDF Example 2: "uunn" -> "uunn", "wnn", "uum", "wm" -> 4 possibilities
+    runner.runTest("ChatDecoder: 'uunn' -> 4 Possibilities", [&]() {
+        return InventorySystem::countStringPossibilities("uunn") == 4;
+    }());
+
+    // PDF Example 3: "w" -> Invalid (broken keyboard) -> 0
+    runner.runTest("ChatDecoder: 'w' -> 0 (Invalid)", [&]() {
+        return InventorySystem::countStringPossibilities("w") == 0;
+    }());
+
+    // PDF Example 4: "m" -> Invalid (broken keyboard) -> 0
+    runner.runTest("ChatDecoder: 'm' -> 0 (Invalid)", [&]() {
+        return InventorySystem::countStringPossibilities("m") == 0;
+    }());
+
+    // PDF Example 5: "" -> Empty string -> 1 way (do nothing)
+    runner.runTest("ChatDecoder: '' -> 1 Possibility", [&]() {
+        return InventorySystem::countStringPossibilities("") == 1;
+    }());
+
+    // Edge Case: Single 'u'
+    runner.runTest("ChatDecoder: 'u' -> 1 Possibility", [&]() {
+        return InventorySystem::countStringPossibilities("u") == 1;
+    }());
+
+    // Edge Case: Single 'n'
+    runner.runTest("ChatDecoder: 'n' -> 1 Possibility", [&]() {
+        return InventorySystem::countStringPossibilities("n") == 1;
+    }());
+
+    // Edge Case: "uuu" -> "uuu", "wu", "uw" -> 2 possibilities (only consecutive pairs)
+    runner.runTest("ChatDecoder: 'uuu' -> 3 Possibilities", [&]() {
+        // "uuu" as-is, or first "uu"→"w" giving "wu", or last "uu"→"w" giving "uw"
+        return InventorySystem::countStringPossibilities("uuu") == 3;
+    }());
+
+    // Edge Case: "uuuu" -> Fibonacci-like growth
+    runner.runTest("ChatDecoder: 'uuuu' -> 5 Possibilities", [&]() {
+        // Follows Fibonacci: dp[4] = dp[3] + dp[2] = 3 + 2 = 5
+        return InventorySystem:: countStringPossibilities("uuuu") == 5;
+    }());
+
+    // Edge Case:  "nnnn" -> Same as "uuuu"
+    runner.runTest("ChatDecoder: 'nnnn' -> 5 Possibilities", [&]() {
+        return InventorySystem::countStringPossibilities("nnnn") == 5;
+    }());
+
+    // Edge Case: Invalid 'w' in middle
+    runner.runTest("ChatDecoder: 'uuwnn' -> 0 (Invalid)", [&]() {
+        return InventorySystem::countStringPossibilities("uuwnn") == 0;
+    }());
+
+    // Edge Case: Invalid 'm' in middle
+    runner.runTest("ChatDecoder: 'uumnm' -> 0 (Invalid)", [&]() {
+        return InventorySystem::countStringPossibilities("uumnm") == 0;
+    }());
+
+    // Edge Case: Invalid 'w' at end
+    runner.runTest("ChatDecoder: 'uuw' -> 0 (Invalid)", [&]() {
+        return InventorySystem::countStringPossibilities("uuw") == 0;
+    }());
+
+    // Edge Case: Mixed valid characters that don't form pairs
+    runner.runTest("ChatDecoder: 'un' -> 1 Possibility", [&]() {
+        return InventorySystem::countStringPossibilities("un") == 1;
+    }());
+
+    // Edge Case: "uunnuu" -> (2)*(2)*(2) = 8? No, it's additive
+    runner.runTest("ChatDecoder: 'uunnuu' -> 16 Possibilities", [&]() {
+        // dp[0]=1, dp[1]=1, dp[2]=2, dp[3]=3, dp[4]=5, dp[5]=8, dp[6]=13
+        // Wait, let me recalculate: 
+        // "uunnuu":  indices 0-5
+        // i=2: "uu" -> dp[2] = dp[1] + dp[0] = 1+1 = 2
+        // i=3: "un" -> dp[3] = dp[2] = 2 (no merge)
+        // i=4: "nn" -> dp[4] = dp[3] + dp[2] = 2+2 = 4
+        // i=5: "nu" -> dp[5] = dp[4] = 4 (no merge)
+        // i=6: "uu" -> dp[6] = dp[5] + dp[4] = 4+4 = 8
+        return InventorySystem::countStringPossibilities("uunnuu") == 8;
+    }());
+
+    // Edge Case: Other characters (if allowed)
+    runner.runTest("ChatDecoder: 'abc' -> 1 Possibility", [&]() {
+        return InventorySystem::countStringPossibilities("abc") == 1;
+    }());
+
+    // Edge Case: Long alternating pattern "ununun..."
+    runner.runTest("ChatDecoder: 'unun' -> 1 Possibility", [&]() {
+        return InventorySystem::countStringPossibilities("unun") == 1;
     }());
 }
 
