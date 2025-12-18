@@ -1149,42 +1149,346 @@ void test_PartB_Inventory() {
 void test_PartC_Navigator() {
     cout << "\n--- Part C: World Navigator ---" << endl;
 
-    // 1. Safe Passage (Path Exists)
-    // PDF Example: 0-1, 1-2. Path 0->2 exists.
+    // ==========================================
+    // 1. SAFE PASSAGE (Path Exists) - BFS/DFS
+    // ==========================================
+    
+    // PDF Example 1: Connected path exists
     runner.runTest("PathExists: 0->1->2 -> True", [&]() {
         vector<vector<int>> edges = {{0, 1}, {1, 2}};
+        return WorldNavigator:: pathExists(3, edges, 0, 2) == true;
+    }());
+
+    // PDF Example 2: Disconnected components
+    runner.runTest("PathExists: Disconnected -> False", [&]() {
+        vector<vector<int>> edges = {{0, 1}, {2, 3}};
+        return WorldNavigator::pathExists(4, edges, 0, 3) == false;
+    }());
+
+    // PDF Example 3: Source equals destination
+    runner.runTest("PathExists: Source == Dest -> True", [&]() {
+        vector<vector<int>> edges = {};
+        return WorldNavigator::pathExists(1, edges, 0, 0) == true;
+    }());
+
+    // Edge Case: Empty graph, source != dest
+    runner.runTest("PathExists: Empty Graph No Edges -> False", [&]() {
+        vector<vector<int>> edges = {};
+        return WorldNavigator::pathExists(3, edges, 0, 2) == false;
+    }());
+
+    // Edge Case: Empty graph with multiple nodes, source == dest
+    runner.runTest("PathExists: Empty Graph Source==Dest -> True", [&]() {
+        vector<vector<int>> edges = {};
+        return WorldNavigator::pathExists(5, edges, 2, 2) == true;
+    }());
+
+    // Edge Case: Direct connection
+    runner.runTest("PathExists: Direct Edge -> True", [&]() {
+        vector<vector<int>> edges = {{0, 1}};
+        return WorldNavigator:: pathExists(2, edges, 0, 1) == true;
+    }());
+
+    // Edge Case: Complex path through multiple nodes
+    runner.runTest("PathExists: Long Path 0->1->2->3->4 -> True", [&]() {
+        vector<vector<int>> edges = {{0, 1}, {1, 2}, {2, 3}, {3, 4}};
+        return WorldNavigator::pathExists(5, edges, 0, 4) == true;
+    }());
+
+    // Edge Case: Cycle in graph
+    runner.runTest("PathExists: Cycle Graph -> True", [&]() {
+        vector<vector<int>> edges = {{0, 1}, {1, 2}, {2, 0}};
         return WorldNavigator::pathExists(3, edges, 0, 2) == true;
     }());
 
-    // 2. The Bribe (MST)
-    // PDF Example: 3 Nodes. Roads: {0,1,10}, {1,2,5}, {0,2,20}. Rate=1.
-    // MST should pick 10 and 5. Total 15.
+    // Edge Case: Star topology
+    runner.runTest("PathExists: Star Topology -> True", [&]() {
+        vector<vector<int>> edges = {{0, 1}, {0, 2}, {0, 3}};
+        return WorldNavigator::pathExists(4, edges, 1, 3) == true;
+    }());
+
+    // Edge Case: Single isolated node (source != dest)
+    runner.runTest("PathExists:  Isolated Nodes -> False", [&]() {
+        vector<vector<int>> edges = {};
+        return WorldNavigator::pathExists(3, edges, 0, 2) == false;
+    }());
+
+    // Edge Case: Multiple components, checking within same component
+    runner.runTest("PathExists: Same Component -> True", [&]() {
+        vector<vector<int>> edges = {{0, 1}, {2, 3}, {3, 4}};
+        return WorldNavigator::pathExists(5, edges, 2, 4) == true;
+    }());
+
+    // ==========================================
+    // 2. THE BRIBE (Minimum Spanning Tree)
+    // ==========================================
+    
+    // PDF Example:  Triangle graph with MST cost 15
     runner.runTest("MinBribeCost: Triangle Graph -> Cost 15", [&]() {
         vector<vector<int>> roads = {
             {0, 1, 10, 0}, 
             {1, 2, 5, 0}, 
             {0, 2, 20, 0}
         };
-        // n=3, m=3, goldRate=1, silverRate=1
         return WorldNavigator::minBribeCost(3, 3, 1, 1, roads) == 15;
     }());
 
-    // 3. Teleporter (Binary Sum APSP)
-    // PDF Example: 0-1 (1), 1-2 (2). Distances: 1, 2, 3. Sum=6 -> "110"
+    // Edge Case: Empty roads, disconnected graph (n > 1)
+    runner.runTest("MinBribeCost: Empty Roads Multiple Nodes -> -1", [&]() {
+        vector<vector<int>> roads = {};
+        return WorldNavigator::minBribeCost(3, 0, 1, 1, roads) == -1;
+    }());
+
+    // Edge Case:  Disconnected graph (should return -1)
+    runner.runTest("MinBribeCost: Disconnected -> -1", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 5, 0},
+            {2, 3, 10, 0}
+        };
+        return WorldNavigator::minBribeCost(4, 2, 1, 1, roads) == -1;
+    }());
+
+    // Edge Case: Single node (already connected)
+    runner.runTest("MinBribeCost: Single Node -> 0", [&]() {
+        vector<vector<int>> roads = {};
+        return WorldNavigator::minBribeCost(1, 0, 1, 1, roads) == 0;
+    }());
+
+    // Edge Case: Empty roads, single node
+    runner.runTest("MinBribeCost: Empty Roads Single Node -> 0", [&]() {
+        vector<vector<int>> roads = {};
+        return WorldNavigator::minBribeCost(1, 0, 5, 5, roads) == 0;
+    }());
+
+    // Edge Case: Two nodes, one edge
+    runner. runTest("MinBribeCost: Two Nodes -> Edge Cost", [&]() {
+        vector<vector<int>> roads = {{0, 1, 10, 5}};
+        // goldRate=2, silverRate=3:  cost = 10*2 + 5*3 = 35
+        return WorldNavigator::minBribeCost(2, 1, 2, 3, roads) == 35;
+    }());
+
+    // Edge Case: Two nodes, no edges
+    runner.runTest("MinBribeCost: Two Nodes No Edges -> -1", [&]() {
+        vector<vector<int>> roads = {};
+        return WorldNavigator::minBribeCost(2, 0, 1, 1, roads) == -1;
+    }());
+
+    // Edge Case: Line graph
+    runner.runTest("MinBribeCost: Line Graph -> Sum of Edges", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 10, 0},
+            {1, 2, 20, 0},
+            {2, 3, 30, 0}
+        };
+        // MST must take all edges: 10 + 20 + 30 = 60
+        return WorldNavigator::minBribeCost(4, 3, 1, 1, roads) == 60;
+    }());
+
+    // Edge Case: Complete graph (multiple MST options)
+    runner.runTest("MinBribeCost: Complete Graph K3 -> Min Edges", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 1, 0},
+            {0, 2, 2, 0},
+            {1, 2, 3, 0}
+        };
+        // MST: edges 0-1 (1) and 0-2 (2) = 3
+        return WorldNavigator::minBribeCost(3, 3, 1, 1, roads) == 3;
+    }());
+
+    // Edge Case: Different gold and silver rates
+    runner.runTest("MinBribeCost: Mixed Gold/Silver Rates", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 5, 10},  // cost = 5*2 + 10*1 = 20
+            {1, 2, 10, 5},  // cost = 10*2 + 5*1 = 25
+            {0, 2, 8, 8}    // cost = 8*2 + 8*1 = 24
+        };
+        // MST should pick edges with costs 20 and 24 = 44
+        return WorldNavigator::minBribeCost(3, 3, 2, 1, roads) == 44;
+    }());
+
+    // Edge Case: Parallel edges (multiple roads between same cities)
+    runner.runTest("MinBribeCost: Parallel Edges -> Choose Min", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 10, 0},
+            {0, 1, 5, 0},   // cheaper parallel edge
+            {1, 2, 8, 0}
+        };
+        // MST: 5 (cheaper 0-1) + 8 (1-2) = 13
+        return WorldNavigator::minBribeCost(3, 3, 1, 1, roads) == 13;
+    }());
+
+    // Edge Case: Large graph (5 nodes)
+    runner.runTest("MinBribeCost: 5 Nodes Complex", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 2, 0},
+            {0, 3, 6, 0},
+            {1, 2, 3, 0},
+            {1, 3, 8, 0},
+            {1, 4, 5, 0},
+            {2, 4, 7, 0},
+            {3, 4, 9, 0}
+        };
+        // MST: 2 + 3 + 5 + 6 = 16
+        return WorldNavigator::minBribeCost(5, 7, 1, 1, roads) == 16;
+    }());
+
+    // Edge Case: Zero cost edges
+    runner.runTest("MinBribeCost: Zero Cost Edges -> 0", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 0, 0},
+            {1, 2, 0, 0}
+        };
+        return WorldNavigator::minBribeCost(3, 2, 1, 1, roads) == 0;
+    }());
+
+    // ==========================================
+    // 3. TELEPORTER NETWORK (All-Pairs Shortest Path)
+    // ==========================================
+    
+    // PDF Example 1: Line graph sum = 6 -> "110"
     runner.runTest("BinarySum: Line Graph -> '110'", [&]() {
         vector<vector<int>> roads = {
             {0, 1, 1},
             {1, 2, 2}
         };
+        // Distances: 0-1=1, 0-2=3, 1-2=2. Sum=6=0b110
         return WorldNavigator::sumMinDistancesBinary(3, roads) == "110";
     }());
-    runner.runTest("BinarySum: Disconnected Graph -> '10100'", [&]() {
-        vector<vector<int>> roads2 = {
-            {0,1,2},
-            {0,2,8}
+
+    // PDF Example 2: Triangle with shortcut
+    runner.runTest("BinarySum: Triangle Graph -> '10100'", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 2},
+            {0, 2, 8}
         };
-        cout << WorldNavigator::sumMinDistancesBinary(3, roads2) << endl;
-        return WorldNavigator::sumMinDistancesBinary(3, roads2) == "10100";
+        // Distances: 0-1=2, 0-2=8, 1-2=10. Sum=20=0b10100
+        return WorldNavigator:: sumMinDistancesBinary(3, roads) == "10100";
+    }());
+
+    // Edge Case: Single node (no pairs) - EMPTY INPUT
+    runner.runTest("BinarySum: Single Node -> '0'", [&]() {
+        vector<vector<int>> roads = {};
+        return WorldNavigator::sumMinDistancesBinary(1, roads) == "0";
+    }());
+
+    // Edge Case: Empty roads with multiple nodes
+    runner.runTest("BinarySum: Empty Roads Multiple Nodes -> '0'", [&]() {
+        vector<vector<int>> roads = {};
+        // No connections, all pairs have INF distance, sum = 0
+        return WorldNavigator::sumMinDistancesBinary(4, roads) == "0";
+    }());
+
+    // Edge Case: Two nodes, one edge
+    runner. runTest("BinarySum: Two Nodes -> Edge Weight Binary", [&]() {
+        vector<vector<int>> roads = {{0, 1, 5}};
+        // Only pair:  0-1=5. Sum=5=0b101
+        return WorldNavigator::sumMinDistancesBinary(2, roads) == "101";
+    }());
+
+    // Edge Case: Two nodes, no edges - EMPTY INPUT
+    runner.runTest("BinarySum: Two Nodes No Edges -> '0'", [&]() {
+        vector<vector<int>> roads = {};
+        // No connection, distance is INF, sum = 0
+        return WorldNavigator::sumMinDistancesBinary(2, roads) == "0";
+    }());
+
+    // Edge Case: Complete graph K3 with equal weights
+    runner.runTest("BinarySum: Complete K3 Equal Weights", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 1},
+            {0, 2, 1},
+            {1, 2, 1}
+        };
+        // All distances = 1. Sum = 3 = 0b11
+        return WorldNavigator::sumMinDistancesBinary(3, roads) == "11";
+    }());
+
+    // Edge Case: Square graph (4 nodes in cycle)
+    runner.runTest("BinarySum: Square Graph", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 1},
+            {1, 2, 1},
+            {2, 3, 1},
+            {3, 0, 1}
+        };
+        // 0-1=1, 0-2=2, 0-3=1, 1-2=1, 1-3=2, 2-3=1
+        // Sum = 1+2+1+1+2+1 = 8 = 0b1000
+        return WorldNavigator::sumMinDistancesBinary(4, roads) == "1000";
+    }());
+
+    // Edge Case:  Graph with shortcut
+    runner.runTest("BinarySum: Graph with Shortcut", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 5},
+            {1, 2, 5},
+            {0, 2, 3}   // shortcut
+        };
+        // 0-1=5, 0-2=3, 1-2=5. Sum=13=0b1101
+        return WorldNavigator::sumMinDistancesBinary(3, roads) == "1101";
+    }());
+
+    // Edge Case: Longer path (5 nodes line)
+    runner.runTest("BinarySum: 5 Node Line", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 1},
+            {1, 2, 1},
+            {2, 3, 1},
+            {3, 4, 1}
+        };
+        // Distances: 1,2,3,4, 1,2,3, 1,2, 1
+        // Sum = 1+2+3+4+1+2+3+1+2+1 = 20 = 0b10100
+        return WorldNavigator::sumMinDistancesBinary(5, roads) == "10100";
+    }());
+
+    // Edge Case: Star topology
+    runner.runTest("BinarySum: Star Topology", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 2},
+            {0, 2, 3},
+            {0, 3, 4}
+        };
+        // Direct:  0-1=2, 0-2=3, 0-3=4
+        // Through hub: 1-2=5, 1-3=6, 2-3=7
+        // Sum = 2+3+4+5+6+7 = 27 = 0b11011
+        return WorldNavigator::sumMinDistancesBinary(4, roads) == "11011";
+    }());
+
+    // Edge Case:  Large sum requiring __int128
+    runner.runTest("BinarySum: Large Weights", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 1000000000},
+            {1, 2, 1000000000}
+        };
+        // 0-1=1e9, 0-2=2e9, 1-2=1e9.  Sum=4e9
+        // 4000000000 in binary
+        long long sum = 4000000000LL;
+        string expected;
+        while (sum > 0) {
+            expected = (char)('0' + (sum & 1)) + expected;
+            sum >>= 1;
+        }
+        return WorldNavigator::sumMinDistancesBinary(3, roads) == expected;
+    }());
+
+    // Edge Case: Disconnected components (some infinite distances)
+    runner.runTest("BinarySum: Partially Connected", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 2},
+            {2, 3, 3}
+        };
+        // 0-1=2, 2-3=3, others=INF (not counted)
+        // Sum = 2+3 = 5 = 0b101
+        return WorldNavigator::sumMinDistancesBinary(4, roads) == "101";
+    }());
+
+    // Edge Case: All zero weight edges
+    runner.runTest("BinarySum: Zero Weight Edges -> '0'", [&]() {
+        vector<vector<int>> roads = {
+            {0, 1, 0},
+            {1, 2, 0}
+        };
+        // All distances = 0. Sum = 0
+        return WorldNavigator::sumMinDistancesBinary(3, roads) == "0";
     }());
 }
 
