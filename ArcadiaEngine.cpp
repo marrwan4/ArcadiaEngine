@@ -329,13 +329,13 @@ private:
     void traverseInorderHelper(Node* x) {
         if (x != nil) {
             traverseInorderHelper(x->left);
-            // cout << *x << "   ";
+            cout << *x << "   ";
             traverseInorderHelper(x->right);
         }
     }
     void traverseInorder() {
         traverseInorderHelper(root);
-        // cout<<endl;
+        cout<<endl;
     }
     void deleteTreeHelper(Node* node) {
         if (node != nil) {
@@ -493,7 +493,7 @@ public:
                 if (itemID < current->id) current = current->left;
                 else if (itemID > current->id) current = current->right;
                 else {
-                    // cout << "Price: "<< price << " with ID: "<< itemID << " already exists. (skipped inserting)" << endl;
+                    cout << "Price: "<< price << " with ID: "<< itemID << " already exists. (skipped inserting)" << endl;
                     delete new_node;
                     return;
                 };
@@ -517,7 +517,7 @@ public:
         insertFixup(new_node);
 
         // O(n)
-        // traverseInorder();
+        traverseInorder();
     }
 
     void deleteItem(int itemID) override {
@@ -525,7 +525,7 @@ public:
         Node* node = searchItem(itemID);
         
         if (node == nil) {
-            // cout << "Item ID: " << itemID << " not found. (skipped deleting)" << endl;
+            cout << "Item ID: " << itemID << " not found. (skipped deleting)" << endl;
             return;
         }
         // O(log n)
@@ -549,7 +549,7 @@ public:
         nil->parent = nullptr;
         
         // O(n)
-        // traverseInorder();
+        traverseInorder();
     }
     ~ConcreteAuctionTree() {
         if (root != nil) {
