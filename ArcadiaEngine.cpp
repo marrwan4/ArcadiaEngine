@@ -727,7 +727,9 @@ long long WorldNavigator:: minBribeCost(int n, int m, long long goldRate, long l
 
     // while Q not empty
     while (!Q.empty()) {
-        auto [curKey, u] = Q.top();
+        pair<long long, int> top = Q.top();
+        long long curKey = top.first;
+        int u = top.second;
         Q.pop();
 
         // ignore outdated entries
@@ -741,7 +743,9 @@ long long WorldNavigator:: minBribeCost(int n, int m, long long goldRate, long l
         connected++;
         
         // for each v ∈ Adj[u]
-        for (auto [v, w] : adj[u]) {
+        for (auto edge : adj[u]) {
+            int v = edge.first;
+            long long w = edge.second;
             // if v belong to Q and w < key[v]
             if (! inMST[v] && w < key[v]) {
                 key[v] = w;        // DECREASE-KEY
