@@ -215,41 +215,40 @@ public:
 
 // --- 3. AuctionTree (Red-Black Tree) ---
 
-struct Node {
-    int id;
-    int price;
-    char color;
-    Node* left;
-    Node* right;
-    Node* parent;
-
-    Node(int id, int price, char color = 'r') {
-        this->id = id;
-        this->price = price;
-        this->color = color;
-        this->left = nullptr;
-        this->right = nullptr;
-        this->parent = nullptr;
-    }
-
-    friend ostream& operator<<(ostream& out, const Node& node) {
-        return out << node.id << ',' << node.price << ',' << node.color;
-    }
-    Node& operator=(const Node& other) {
-        if (this != &other) {
-            id = other.id;
-            price = other.price;
-            color = other.color;
-            left = other.left;
-            right = other.right;
-            parent = other.parent;
-        }
-        return *this;
-    }
-};
-
 class ConcreteAuctionTree : public AuctionTree {
 private:
+    struct Node {
+        int id;
+        int price;
+        char color;
+        Node* left;
+        Node* right;
+        Node* parent;
+
+        Node(int id, int price, char color = 'r') {
+            this->id = id;
+            this->price = price;
+            this->color = color;
+            this->left = nullptr;
+            this->right = nullptr;
+            this->parent = nullptr;
+        }
+
+        friend ostream& operator<<(ostream& out, const Node& node) {
+            return out << node.id << ',' << node.price << ',' << node.color;
+        }
+        Node& operator=(const Node& other) {
+            if (this != &other) {
+                id = other.id;
+                price = other.price;
+                color = other.color;
+                left = other.left;
+                right = other.right;
+                parent = other.parent;
+            }
+            return *this;
+        }
+    };
     Node* root;
     Node* nil;
 
