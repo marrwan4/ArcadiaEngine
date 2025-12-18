@@ -914,7 +914,296 @@ void test_PartA_DataStructures() {
         return true; // Pass if no crash, tests complex rebalancing
     }());
     delete tree19;
+    // Test 20: Multiple leaf deletions (nil->parent stress test)
+    AuctionTree* tree20 = createAuctionTree();
+    runner.runTest("AuctionTree: Multiple Leaf Deletions (nil->parent test)", [&]() {
+        tree20->insertItem(10, 100);
+        tree20->insertItem(5, 50);
+        tree20->insertItem(15, 150);
+        tree20->insertItem(3, 30);
+        tree20->insertItem(7, 70);
+        tree20->insertItem(12, 120);
+        tree20->insertItem(17, 170);
+        // Delete multiple leaves - each sets nil->parent
+        tree20->deleteItem(3);   // Leaf
+        tree20->deleteItem(7);   // Leaf
+        tree20->deleteItem(12);  // Leaf
+        tree20->deleteItem(17);  // Leaf
+        // Try operations after nil->parent corruption
+        tree20->insertItem(20, 200);
+        tree20->deleteItem(20);
+        return true;
+    }());
+    delete tree20;
 
+    // Test 21: Delete leaf then insert (nil->parent between operations)
+    AuctionTree* tree21 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Leaf Then Insert", [&]() {
+        tree21->insertItem(5, 50);
+        tree21->insertItem(3, 30);
+        tree21->insertItem(7, 70);
+        tree21->deleteItem(3);  // Delete leaf, sets nil->parent
+        // Insert new node - might fail if nil->parent corrupted
+        tree21->insertItem(2, 20);
+        tree21->insertItem(8, 80);
+        return true;
+    }());
+    delete tree21;
+
+    // Test 22: Delete all leaves, then rebuild tree
+    AuctionTree* tree22 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete All Leaves Then Rebuild", [&]() {
+        tree22->insertItem(10, 100);
+        tree22->insertItem(5, 50);
+        tree22->insertItem(15, 150);
+        tree22->insertItem(3, 30);
+        tree22->insertItem(7, 70);
+        tree22->insertItem(12, 120);
+        tree22->insertItem(18, 180);
+        // Delete all leaves
+        tree22->deleteItem(3);
+        tree22->deleteItem(7);
+        tree22->deleteItem(12);
+        tree22->deleteItem(18);
+        // Rebuild
+        tree22->insertItem(1, 10);
+        tree22->insertItem(20, 200);
+        return true;
+    }());
+    delete tree22;
+
+    // Test 23: Single node delete and recreate repeatedly
+    AuctionTree* tree23 = createAuctionTree();
+    runner.runTest("AuctionTree:  Repeated Single Node Operations", [&]() {
+        for (int i = 1; i <= 5; i++) {
+            tree23->insertItem(i, i * 10);
+            tree23->deleteItem(i);  // Each makes tree empty
+        }
+        tree23->insertItem(100, 1000);
+        return true;
+    }());
+    delete tree23;
+
+    // Test 24: Delete node with only left child (nil as right child)
+    AuctionTree* tree24 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Node with Only Left Child", [&]() {
+        tree24->insertItem(10, 100);
+        tree24->insertItem(5, 50);
+        tree24->insertItem(15, 150);
+        tree24->insertItem(3, 30);
+        tree24->insertItem(7, 70);
+        tree24->insertItem(2, 20);
+        // Node 3 has left child 2, right child is nil
+        tree24->deleteItem(3);
+        tree24->insertItem(4, 40);
+        return true;
+    }());
+    delete tree24;
+
+    // Test 25: Delete node with only right child (nil as left child)
+    AuctionTree* tree25 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Node with Only Right Child", [&]() {
+        tree25->insertItem(10, 100);
+        tree25->insertItem(5, 50);
+        tree25->insertItem(15, 150);
+        tree25->insertItem(12, 120);
+        tree25->insertItem(18, 180);
+        tree25->insertItem(20, 200);
+        // Node 18 has right child 20, left child is nil
+        tree25->deleteItem(18);
+        tree25->insertItem(19, 190);
+        return true;
+    }());
+    delete tree25;
+
+    // Test 26: Delete causing sibling with nil children in fixup
+    AuctionTree* tree26 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Triggering Sibling with nil Children", [&]() {
+        tree26->insertItem(10, 100);
+        tree26->insertItem(5, 50);
+        tree26->insertItem(15, 150);
+        tree26->insertItem(3, 30);
+        tree26->insertItem(7, 70);
+        tree26->deleteItem(3);  // May trigger fixup with sibling having nil children
+        tree26->deleteItem(7);
+        tree26->insertItem(4, 40);
+        return true;
+    }());
+    delete tree26;
+
+    // Test 27: Alternating insert/delete with leaves
+    AuctionTree* tree27 = createAuctionTree();
+    runner.runTest("AuctionTree: Alternating Insert/Delete Leaves", [&]() {
+        for (int i = 1; i <= 20; i++) {
+            tree27->insertItem(i, i * 10);
+            if (i > 1 && i % 2 == 0) {
+                tree27->deleteItem(i - 1);  // Delete previous (likely a leaf)
+            }
+        }
+        return true;
+    }());
+    delete tree27;
+
+    // Test 28: Delete non-existent after multiple leaf deletions
+    AuctionTree* tree28 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Non-Existent After Leaf Deletions", [&]() {
+        tree28->insertItem(10, 100);
+        tree28->insertItem(5, 50);
+        tree28->insertItem(15, 150);
+        tree28->insertItem(3, 30);
+        tree28->insertItem(17, 170);
+        tree28->deleteItem(3);   // Leaf deletion
+        tree28->deleteItem(17);  // Leaf deletion
+        // Search for non-existent might traverse through corrupted nil->parent
+        tree28->deleteItem(999);
+        tree28->deleteItem(-1);
+        tree28->insertItem(20, 200);
+        return true;
+    }());
+    delete tree28;
+
+    // Test 29: Build tree, delete all to empty, rebuild
+    AuctionTree* tree29 = createAuctionTree();
+    runner.runTest("AuctionTree: Empty Tree and Rebuild", [&]() {
+        // Build
+        for (int i = 1; i <= 10; i++) {
+            tree29->insertItem(i, i * 10);
+        }
+        // Empty
+        for (int i = 1; i <= 10; i++) {
+            tree29->deleteItem(i);
+        }
+        // Rebuild
+        for (int i = 11; i <= 20; i++) {
+            tree29->insertItem(i, i * 10);
+        }
+        return true;
+    }());
+    delete tree29;
+
+    // Test 30: Delete root that is a leaf
+    AuctionTree* tree30 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Root as Leaf", [&]() {
+        tree30->insertItem(1, 100);
+        tree30->deleteItem(1);  // Root is leaf, both children are nil
+        tree30->insertItem(2, 200);
+        tree30->deleteItem(2);
+        tree30->insertItem(3, 300);
+        return true;
+    }());
+    delete tree30;
+
+    // Test 31: Complex tree with cascading leaf deletions
+    AuctionTree* tree31 = createAuctionTree();
+    runner.runTest("AuctionTree:  Cascading Leaf Deletions", [&]() {
+        tree31->insertItem(50, 500);
+        tree31->insertItem(25, 250);
+        tree31->insertItem(75, 750);
+        tree31->insertItem(10, 100);
+        tree31->insertItem(30, 300);
+        tree31->insertItem(60, 600);
+        tree31->insertItem(80, 800);
+        tree31->insertItem(5, 50);
+        tree31->insertItem(15, 150);
+        tree31->insertItem(27, 270);
+        tree31->insertItem(35, 350);
+        // Delete leaves in sequence
+        tree31->deleteItem(5);
+        tree31->deleteItem(15);
+        tree31->deleteItem(27);
+        tree31->deleteItem(35);
+        tree31->deleteItem(60);
+        tree31->deleteItem(80);
+        // Continue operations
+        tree31->insertItem(90, 900);
+        tree31->deleteItem(90);
+        return true;
+    }());
+    delete tree31;
+
+    // Test 32: Deletion causing rotation with nil children
+    AuctionTree* tree32 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Causing Rotation with nil", [&]() {
+        // Build imbalanced tree
+        for (int i = 1; i <= 15; i++) {
+            tree32->insertItem(i, i);
+        }
+        // Delete to cause rotations
+        tree32->deleteItem(1);
+        tree32->deleteItem(2);
+        tree32->deleteItem(14);
+        tree32->deleteItem(15);
+        // Insert to trigger more rotations
+        tree32->insertItem(100, 100);
+        tree32->insertItem(101, 101);
+        return true;
+    }());
+    delete tree32;
+
+    // Test 33: Same price, delete leaves with duplicate prices
+    AuctionTree* tree33 = createAuctionTree();
+    runner.runTest("AuctionTree: Delete Leaves with Same Price", [&]() {
+        tree33->insertItem(5, 100);
+        tree33->insertItem(3, 100);
+        tree33->insertItem(7, 100);
+        tree33->insertItem(1, 100);
+        tree33->insertItem(4, 100);
+        tree33->insertItem(6, 100);
+        tree33->insertItem(9, 100);
+        // Delete leaves with same price
+        tree33->deleteItem(1);
+        tree33->deleteItem(4);
+        tree33->deleteItem(6);
+        tree33->deleteItem(9);
+        tree33->insertItem(10, 100);
+        return true;
+    }());
+    delete tree33;
+
+    // Test 34: Stress test - many operations with leaf deletions
+    AuctionTree* tree34 = createAuctionTree();
+    runner.runTest("AuctionTree: Stress Test with Leaf Deletions", [&]() {
+        // Insert many
+        for (int i = 1; i <= 30; i++) {
+            tree34->insertItem(i, i * 5);
+        }
+        // Delete odds (many will be leaves)
+        for (int i = 1; i <= 30; i += 2) {
+            tree34->deleteItem(i);
+        }
+        // Insert new
+        for (int i = 31; i <= 40; i++) {
+            tree34->insertItem(i, i * 5);
+        }
+        // Delete evens
+        for (int i = 2; i <= 30; i += 2) {
+            tree34->deleteItem(i);
+        }
+        return true;
+    }());
+    delete tree34;
+
+    // Test 35: Delete causing black-height violation with nil
+    AuctionTree* tree35 = createAuctionTree();
+    runner.runTest("AuctionTree: Black-Height Fixup with nil", [&]() {
+        tree35->insertItem(20, 200);
+        tree35->insertItem(10, 100);
+        tree35->insertItem(30, 300);
+        tree35->insertItem(5, 50);
+        tree35->insertItem(15, 150);
+        tree35->insertItem(25, 250);
+        tree35->insertItem(35, 350);
+        tree35->insertItem(3, 30);
+        tree35->insertItem(7, 70);
+        // Delete to trigger black-height fixup
+        tree35->deleteItem(3);  // Likely triggers fixup
+        tree35->deleteItem(7);
+        tree35->deleteItem(25);
+        tree35->deleteItem(35);
+        tree35->insertItem(40, 400);
+        return true;
+    }());
+    delete tree35;
 }
 
 // ==========================================
