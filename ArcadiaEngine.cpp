@@ -656,7 +656,7 @@ long long InventorySystem::countStringPossibilities(string s) {
 // =========================================================
 
 bool WorldNavigator::pathExists(int n, vector<vector<int>>& edges, int source, int dest) {
-    // time: O(V + E), space: O(V + E)
+    // time: O(V + E)
     if (source == dest){
         return true;
     }
@@ -718,7 +718,7 @@ bool WorldNavigator::pathExists(int n, vector<vector<int>>& edges, int source, i
 }
 
 long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long long silverRate, vector<vector<int>>& roadData) {
-    // time: O(E log V), space: O(V + E)
+    // time: O(E log V)
         // roadData[i] = {u, v, goldCost, silverCost}
         // n : number of cities
         // m : number of roads
@@ -805,6 +805,7 @@ long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long lo
 }
 
 string WorldNavigator::sumMinDistancesBinary(int n, vector<vector<int>>& roads) {
+    // time: O(V^3)
     // TODO: Implement All-Pairs Shortest Path (Floyd-Warshall)
     // Sum all shortest distances between unique pairs (i < j)
     // Return the sum as a binary string
