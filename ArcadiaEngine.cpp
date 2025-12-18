@@ -12,9 +12,7 @@
 #include <string>
 #include <iostream>
 #include <map>
-#include <unordered_map>
 #include <set>
-#include <unordered_set>
 #include <bitset>
 
 using namespace std;
@@ -668,141 +666,89 @@ bool WorldNavigator::pathExists(int n, vector<vector<int>>& edges, int source, i
         return true;
     }
     
-    // Create mapping from actual node IDs to normalized [0, n-1]
-    unordered_map<int, int> nodeToIdx;
-    int idx = 0;
-    
-    // Collect all unique nodes
-    unordered_set<int> nodes;
-    nodes.insert(source);
-    nodes.insert(dest);
+    // Build adjacency list directly (nodes are 0 to n-1)
+    vector<vector<int>> adj(n);
     for (const auto& edge : edges) {
-        nodes.insert(edge[0]);
-        nodes.insert(edge[1]);
+        adj[edge[0]].push_back(edge[1]);
+        adj[edge[1]].push_back(edge[0]);
     }
     
-    // Assign indices
-    for (int node : nodes) {
-        nodeToIdx[node] = idx++;
-    }
-    
-    // Build adjacency list with normalized indices
-    vector<vector<int>> adj(nodes.size());
-    for (const auto& edge : edges) {
-        int u = nodeToIdx[edge[0]], v = nodeToIdx[edge[1]];
-        adj[u].push_back(v);
-        adj[v].push_back(u);
-    }
-    
-    int normSource = nodeToIdx[source];
-    int normDest = nodeToIdx[dest];
-    
-    // Push source into queue
+    // BFS
     queue<int> q;
-    q.push(normSource);
-    // Mark it visited
-    vector<bool> visited(nodes.size(), false);
-    visited[normSource] = true;
-    // While queue not empty:
-    while (!q.empty()) {
-        // Pop node
+    q.push(source);
+    vector<bool> visited(n, false);
+    visited[source] = true;
+    
+    while (! q.empty()) {
         int node = q.front();
         q.pop();
-        // If node == dest -> return true
-        if (node == normDest) {
+        
+        if (node == dest) {
             return true;
         }
-        // Push unvisited neighbors
+        
         for (int neighbor : adj[node]) {
-            if (!visited[neighbor]) {
+            if (! visited[neighbor]) {
                 visited[neighbor] = true;
                 q.push(neighbor);
             }
         }
     }
-    // If finished -> return false
+    
     return false;
 }
 
-long long WorldNavigator::minBribeCost(int n, int m, long long goldRate, long long silverRate, vector<vector<int>>& roadData) {
+long long WorldNavigator:: minBribeCost(int n, int m, long long goldRate, long long silverRate, vector<vector<int>>& roadData) {
     // time: O(E log V)
-        // roadData[i] = {u, v, goldCost, silverCost}
-        // n : number of cities
-        // m : number of roads
-        // u : start city
-        // v : end city
-        // Total cost = goldCost * goldRate + silverCost * silverRate
-    // Create mapping from actual node IDs to normalized [0, n-1]
-    unordered_map<int, int> nodeToIdx;
-    unordered_set<int> nodes;
-    
-    // Collect all unique nodes
-    for (const auto& road : roadData) {
-        nodes.insert(road[0]);
-        nodes.insert(road[1]);
-    }
-    
-    // Assign indices
-    int idx = 0;
-    for (int node : nodes) {
-        nodeToIdx[node] = idx++;
-    }
-    
-    int actualN = nodes.size();
-    
-    // Build adjacency list with normalized indices
-    vector<vector<tuple<int, long long>>> adj(actualN);
-    for (const auto& road : roadData) {
-        int u = nodeToIdx[road[0]];
-        int v = nodeToIdx[road[1]];
+    // roadData[i] = {u, v, goldCost, silverCost}
+    // n :  number of cities
+    // m :  number of roads
+    // u : start city
+    // v : end city
+    // Total cost = goldCost * goldRate + silverCost * silverRate
+    // Build adjacency list
+    vector<vector<pair<int, long long>>> adj(n);
+    for (const auto& road :  roadData) {
+        int u = road[0];
+        int v = road[1];
         long long cost = road[2] * goldRate + road[3] * silverRate;
         adj[u].push_back({v, cost});
         adj[v].push_back({u, cost});
     }
-    vector<long long> key(actualN, LLONG_MAX);   // key[v] = infinity
-    vector<bool> inMST(actualN, false);           // v belong to Q ?
-    vector<int> parent(actualN, -1);              // π[v]
-
+    vector<long long> key(n, LLONG_MAX);   // key[v] = infinity
+    vector<bool> inMST(n, false);           // v belong to Q ? 
     // Q = V  (min-heap ordered by key)
-    priority_queue<tuple<long long, int>,vector<tuple<long long, int>>,greater<>> Q;
-
+    priority_queue<pair<long long, int>, vector<pair<long long, int>>, greater<>> Q;
     // key[s] = 0 (start from vertex 0)
     key[0] = 0;
-    Q.push({0, 0});
-
+    Q. push({0, 0});
     long long totalCost = 0;
     int connected = 0;
 
     // while Q not empty
     while (!Q.empty()) {
-        auto top = Q.top();
-        long long curKey = get<0>(top);
-        int u = get<1>(top);
+        auto [curKey, u] = Q.top();
         Q.pop();
 
         // ignore outdated entries
         if (inMST[u]) {
             continue;
         }
-
+        
         // u = EXTRACT-MIN(Q)
         inMST[u] = true;
         totalCost += curKey;
         connected++;
-
+        
         // for each v ∈ Adj[u]
-        for (auto& edge : adj[u]) {
-            int v = get<0>(edge);
-            long long w = get<1>(edge);
+        for (auto [v, w] : adj[u]) {
             // if v belong to Q and w < key[v]
-            if (!inMST[v] && w < key[v]) {
+            if (! inMST[v] && w < key[v]) {
                 key[v] = w;        // DECREASE-KEY
-                parent[v] = u;     // π[v] = u
                 Q.push({key[v], v});
             }
         }
     }
-
     // Connectivity check
     if (connected != n) {
         return -1;
@@ -821,63 +767,42 @@ string WorldNavigator::sumMinDistancesBinary(int n, vector<vector<int>>& roads) 
     // input roads[i] = {u, v, weight}
     // formula: Ak[i][j] = min(A(k-1)[i][j], A(k-1)[i][k] + A(k-1)[k][j])
     const long long INF = 1e18;
-
-    // Map arbitrary node IDs to compact indices
-    unordered_map<int, int> nodeToIdx;
-    int nodeCount = 0;
-    
-    for (const auto& road : roads) {
-        if (nodeToIdx.find(road[0]) == nodeToIdx.end()) {
-            nodeToIdx[road[0]] = nodeCount++;
-        }
-        if (nodeToIdx.find(road[1]) == nodeToIdx.end()) {
-            nodeToIdx[road[1]] = nodeCount++;
-        }
-    }
-    
-    if (nodeCount == 0) return "0";
-    
     // Initialize distance matrix
-    vector<vector<long long>> dist(nodeCount, vector<long long>(nodeCount, INF));
-    for (int i = 0; i < nodeCount; i++) {
+    vector<vector<long long>> dist(n, vector<long long>(n, INF));
+    for (int i = 0; i < n; i++) {
         dist[i][i] = 0;
     }
-    
     // Add edges (undirected)
     for (const auto& road : roads) {
-        int u = nodeToIdx[road[0]];
-        int v = nodeToIdx[road[1]];
+        int u = road[0];
+        int v = road[1];
         long long w = road[2];
         dist[u][v] = min(dist[u][v], w);
         dist[v][u] = min(dist[v][u], w);
     }
-    
     // Floyd-Warshall
-    for (int k = 0; k < nodeCount; k++) {
-        for (int i = 0; i < nodeCount; i++) {
-            for (int j = 0; j < nodeCount; j++) {
+    for (int k = 0; k < n; k++) {
+        for (int i = 0; i < n; i++) {
+            for (int j = 0; j < n; j++) {
                 if (dist[i][k] != INF && dist[k][j] != INF) {
                     dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
                 }
             }
         }
     }
-    
-    // Sum distances for unique pairs (i < j) using __int128
+    // Sum distances for unique pairs (i < j)
     __int128 total = 0;
-    for (int i = 0; i < nodeCount; i++) {
-        for (int j = i + 1; j < nodeCount; j++) {
+    for (int i = 0; i < n; i++) {
+        for (int j = i + 1; j < n; j++) {
             if (dist[i][j] != INF) {
                 total += dist[i][j];
             }
         }
     }
-    
     // Convert to binary string
     if (total == 0) {
         return "0";
     }
-    
     string binary;
     while (total > 0) {
         // if least significant bit is 1
