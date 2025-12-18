@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <set>
 #include <unordered_set>
+#include <bitset>
 
 using namespace std;
 
@@ -808,7 +809,80 @@ string WorldNavigator::sumMinDistancesBinary(int n, vector<vector<int>>& roads) 
     // Sum all shortest distances between unique pairs (i < j)
     // Return the sum as a binary string
     // Hint: Handle large numbers carefully
-    return "0";
+    // undirected graph
+    // input roads[i] = {u, v, weight}
+    // formula: Ak[i][j] = min(A(k-1)[i][j], A(k-1)[i][k] + A(k-1)[k][j])
+    const long long INF = 1e18;
+
+    // Map arbitrary node IDs to compact indices
+    unordered_map<int, int> nodeToIdx;
+    int nodeCount = 0;
+    
+    for (const auto& road : roads) {
+        if (nodeToIdx.find(road[0]) == nodeToIdx.end()) {
+            nodeToIdx[road[0]] = nodeCount++;
+        }
+        if (nodeToIdx.find(road[1]) == nodeToIdx.end()) {
+            nodeToIdx[road[1]] = nodeCount++;
+        }
+    }
+    
+    if (nodeCount == 0) return "0";
+    
+    // Initialize distance matrix
+    vector<vector<long long>> dist(nodeCount, vector<long long>(nodeCount, INF));
+    for (int i = 0; i < nodeCount; i++) {
+        dist[i][i] = 0;
+    }
+    
+    // Add edges (undirected)
+    for (const auto& road : roads) {
+        int u = nodeToIdx[road[0]];
+        int v = nodeToIdx[road[1]];
+        long long w = road[2];
+        dist[u][v] = min(dist[u][v], w);
+        dist[v][u] = min(dist[v][u], w);
+    }
+    
+    // Floyd-Warshall
+    for (int k = 0; k < nodeCount; k++) {
+        for (int i = 0; i < nodeCount; i++) {
+            for (int j = 0; j < nodeCount; j++) {
+                if (dist[i][k] != INF && dist[k][j] != INF) {
+                    dist[i][j] = min(dist[i][j], dist[i][k] + dist[k][j]);
+                }
+            }
+        }
+    }
+    
+    // Sum distances for unique pairs (i < j) using __int128
+    __int128 total = 0;
+    for (int i = 0; i < nodeCount; i++) {
+        for (int j = i + 1; j < nodeCount; j++) {
+            if (dist[i][j] != INF) {
+                total += dist[i][j];
+            }
+        }
+    }
+    
+    // Convert to binary string
+    if (total == 0) {
+        return "0";
+    }
+    
+    string binary;
+    while (total > 0) {
+        // if least significant bit is 1
+        if (total & 1) {
+            binary.push_back('1');
+        } else {
+            binary.push_back('0');
+        }
+        total >>= 1;
+    }
+    reverse(binary.begin(), binary.end());
+    
+    return binary;
 }
 
 // =========================================================

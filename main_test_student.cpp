@@ -413,6 +413,14 @@ void test_PartC_Navigator() {
         };
         return WorldNavigator::sumMinDistancesBinary(3, roads) == "110";
     }());
+    runner.runTest("BinarySum: Disconnected Graph -> '10100'", [&]() {
+        vector<vector<int>> roads2 = {
+            {0,1,2},
+            {0,2,8}
+        };
+        cout << WorldNavigator::sumMinDistancesBinary(3, roads2) << endl;
+        return WorldNavigator::sumMinDistancesBinary(3, roads2) == "10100";
+    }());
 }
 
 // ==========================================
