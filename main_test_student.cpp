@@ -1204,6 +1204,69 @@ void test_PartA_DataStructures() {
         return true;
     }());
     delete tree35;
+    // Test 36: Memory leak - empty tree
+    AuctionTree* tree36 = createAuctionTree();
+    runner.runTest("AuctionTree: Empty Tree Deletion (memory check)", [&]() {
+        // Do nothing, just delete
+        return true;
+    }());
+    delete tree36;  // Should not leak
+
+    // Test 37: Memory leak - insert and delete all
+    AuctionTree* tree37 = createAuctionTree();
+    runner.runTest("AuctionTree: Insert/Delete All (memory check)", [&]() {
+        for (int i = 1; i <= 100; i++) {
+            tree37->insertItem(i, i * 10);
+        }
+        for (int i = 1; i <= 100; i++) {
+            tree37->deleteItem(i);
+        }
+        return true;  // Tree should be empty, only nil remains
+    }());
+    delete tree37;  // Should not leak
+
+    // Test 38: Memory leak - duplicate insertions
+    AuctionTree* tree38 = createAuctionTree();
+    runner.runTest("AuctionTree: Duplicate Insertions (memory check)", [&]() {
+        tree38->insertItem(1, 100);
+        tree38->insertItem(1, 100);  // Should delete the duplicate
+        tree38->insertItem(1, 100);  // Should delete the duplicate
+        tree38->insertItem(1, 100);  // Should delete the duplicate
+        return true;
+    }());
+    delete tree38;  // Should not leak
+
+    // Test 39: Memory leak - partial deletion
+    AuctionTree* tree39 = createAuctionTree();
+    runner.runTest("AuctionTree: Partial Deletion (memory check)", [&]() {
+        for (int i = 1; i <= 50; i++) {
+            tree39->insertItem(i, i * 10);
+        }
+        for (int i = 1; i <= 25; i++) {
+            tree39->deleteItem(i);
+        }
+        // Destructor should clean up remaining 25 nodes
+        return true;
+    }());
+    delete tree39;  // Should not leak remaining nodes
+
+    // Test 40: Memory leak - complex operations
+    AuctionTree* tree40 = createAuctionTree();
+    runner.runTest("AuctionTree: Complex Operations (memory check)", [&]() {
+        for (int i = 1; i <= 30; i++) {
+            tree40->insertItem(i, i * 5);
+        }
+        for (int i = 5; i <= 25; i += 5) {
+            tree40->deleteItem(i);
+        }
+        for (int i = 31; i <= 40; i++) {
+            tree40->insertItem(i, i * 5);
+        }
+        tree40->deleteItem(999);  // Non-existent
+        // Destructor should clean up all nodes
+        return true;
+    }());
+    delete tree40;
 }
 
 // ==========================================
