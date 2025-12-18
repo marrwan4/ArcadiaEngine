@@ -998,12 +998,137 @@ void test_PartC_Navigator() {
 void test_PartD_Kernel() {
     cout << "\n--- Part D: Server Kernel ---" << endl;
 
-    // 1. Task Scheduler
-    // PDF Example: Tasks={A, A, B}, n=2.
+    // ========== BASIC/PDF EXAMPLES ==========
+    
+    // PDF Example 1: Tasks={A, A, B}, n=2.
     // Order: A -> B -> idle -> A. Total intervals: 4.
     runner.runTest("Scheduler: {A, A, B}, n=2 -> 4 Intervals", [&]() {
         vector<char> tasks = {'A', 'A', 'B'};
-        return ServerKernel::minIntervals(tasks, 2) == 4;
+        return ServerKernel:: minIntervals(tasks, 2) == 4;
+    }());
+
+    // PDF Example 2: Tasks={A, A, A}, n=2.
+    // Order: A -> idle -> idle -> A -> idle -> idle -> A. Total: 7.
+    runner.runTest("Scheduler: {A, A, A}, n=2 -> 7 Intervals", [&]() {
+        vector<char> tasks = {'A', 'A', 'A'};
+        return ServerKernel::minIntervals(tasks, 2) == 7;
+    }());
+
+    // PDF Example 3: Tasks={A, B, C}, n=2.
+    // All unique, no cooling needed.  Total: 3.
+    runner.runTest("Scheduler: {A, B, C}, n=2 -> 3 Intervals", [&]() {
+        vector<char> tasks = {'A', 'B', 'C'};
+        return ServerKernel::minIntervals(tasks, 2) == 3;
+    }());
+
+    // PDF Example 4: Tasks={A, A, A, B, B, B}, n=2.
+    // Order: A -> B -> idle -> A -> B -> idle -> A -> B. Total: 8.
+    runner.runTest("Scheduler: {A, A, A, B, B, B}, n=2 -> 8 Intervals", [&]() {
+        vector<char> tasks = {'A', 'A', 'A', 'B', 'B', 'B'};
+        return ServerKernel::minIntervals(tasks, 2) == 8;
+    }());
+
+    // ========== EDGE CASES:  EMPTY & SINGLE ==========
+    
+    // Edge:  Empty task list
+    runner.runTest("Scheduler: Empty tasks -> 0 Intervals", [&]() {
+        vector<char> tasks = {};
+        cout << "Intervals for empty tasks: " << ServerKernel::minIntervals(tasks, 2) << endl;
+        return ServerKernel::minIntervals(tasks, 2) == 0;
+    }());
+
+    // Edge: Single task
+    runner.runTest("Scheduler: {A}, n=5 -> 1 Interval", [&]() {
+        vector<char> tasks = {'A'};
+        return ServerKernel::minIntervals(tasks, 5) == 1;
+    }());
+
+    // Edge: Two same tasks, large n
+    runner.runTest("Scheduler: {A, A}, n=10 -> 12 Intervals", [&]() {
+        vector<char> tasks = {'A', 'A'};
+        return ServerKernel::minIntervals(tasks, 10) == 12; // A -> 10 idles -> A
+    }());
+
+    // ========== EDGE CASE: n=0 (NO COOLING) ==========
+    
+    // n=0: No cooling time needed
+    runner.runTest("Scheduler: {A, A, A, B, B}, n=0 -> 5 Intervals", [&]() {
+        vector<char> tasks = {'A', 'A', 'A', 'B', 'B'};
+        return ServerKernel::minIntervals(tasks, 0) == 5; // Can run immediately
+    }());
+
+    // n=0: All same tasks
+    runner.runTest("Scheduler: {Z, Z, Z, Z}, n=0 -> 4 Intervals", [&]() {
+        vector<char> tasks = {'Z', 'Z', 'Z', 'Z'};
+        return ServerKernel::minIntervals(tasks, 0) == 4;
+    }());
+
+    // ========== EDGE CASE: ALL UNIQUE TASKS ==========
+    
+    // All unique tasks, large n doesn't matter
+    runner.runTest("Scheduler: {A, B, C, D, E}, n=100 -> 5 Intervals", [&]() {
+        vector<char> tasks = {'A', 'B', 'C', 'D', 'E'};
+        return ServerKernel::minIntervals(tasks, 100) == 5; // No repeats
+    }());
+
+    // All 26 unique tasks
+    runner.runTest("Scheduler: All A-Z unique, n=5 -> 26 Intervals", [&]() {
+        vector<char> tasks = {'A','B','C','D','E','F','G','H','I','J','K','L','M',
+                              'N','O','P','Q','R','S','T','U','V','W','X','Y','Z'};
+        return ServerKernel::minIntervals(tasks, 5) == 26;
+    }());
+
+    // ========== EDGE CASE:  MULTIPLE MAX FREQUENCIES ==========
+    
+    // Three tasks with same max frequency
+    runner.runTest("Scheduler: {A, A, B, B, C, C}, n=2 -> 7 Intervals", [&]() {
+        vector<char> tasks = {'A', 'A', 'B', 'B', 'C', 'C'};
+        return ServerKernel::minIntervals(tasks, 2) == 6; // A->B->C->A->B->C, then one more
+    }());
+
+    // Four tasks with same max frequency
+    runner.runTest("Scheduler: {A, A, A, B, B, B, C, C, C, D, D, D}, n=2 -> 12 Intervals", [&]() {
+        vector<char> tasks = {'A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C', 'D', 'D', 'D'};
+        return ServerKernel::minIntervals(tasks, 2) == 12; // (3-1)*(2+1)+4 = 10 vs 12 total
+    }());
+
+    // ========== EDGE CASE:  EXTREME COOLING TIME ==========
+    
+    // Very large cooling time with few tasks
+    runner.runTest("Scheduler: {A, A, A}, n=1000 -> 3001 Intervals", [&]() {
+        vector<char> tasks = {'A', 'A', 'A'};
+        return ServerKernel::minIntervals(tasks, 1000) == 2003; // A -> 1000 idles -> A -> 1000 idles -> A
+    }());
+
+    // ========== EDGE CASE: ONE DOMINANT TASK ==========
+    
+    // One task dominates frequency
+    runner.runTest("Scheduler: {A, A, A, A, B, C}, n=2 -> 10 Intervals", [&]() {
+        vector<char> tasks = {'A', 'A', 'A', 'A', 'B', 'C'};
+        return ServerKernel::minIntervals(tasks, 2) == 10; // (4-1)*(2+1)+1 = 10
+    }());
+
+    // ========== EDGE CASE:  SMALL n WITH MANY TASKS ==========
+    
+    // n=1, many diverse tasks fill gaps
+    runner.runTest("Scheduler: {A, A, A, B, B, C, D, E}, n=1 -> 8 Intervals", [&]() {
+        vector<char> tasks = {'A', 'A', 'A', 'B', 'B', 'C', 'D', 'E'};
+        return ServerKernel:: minIntervals(tasks, 1) == 8; // (3-1)*(1+1)+1 = 5 vs 8 total
+    }());
+
+    // ========== STRESS TEST ==========
+    
+    // Large input with all same task
+    runner. runTest("Scheduler: 100x{A}, n=2 -> 298 Intervals", [&]() {
+        vector<char> tasks(100, 'A');
+        return ServerKernel::minIntervals(tasks, 2) == 298; // (100-1)*(2+1)+1 = 298
+    }());
+
+    // Large input with perfectly distributed tasks
+    runner.runTest("Scheduler: 50xA + 50xB, n=1 -> 100 Intervals", [&]() {
+        vector<char> tasks(50, 'A');
+        tasks. insert(tasks.end(), 50, 'B');
+        return ServerKernel:: minIntervals(tasks, 1) == 100; // Can alternate perfectly
     }());
 }
 
