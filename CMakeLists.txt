@@ -8,4 +8,4 @@ include_directories(.)
 add_executable(ArcadiaEngine
         ArcadiaEngine.cpp
         ArcadiaEngine.h
-        main_test_student.cpp)
+        main_test_v011.cpp)
